@@ -209,7 +209,7 @@ int real_main(cmd_arguments & args)
     {
         // Check if read is properly mapped and paired (if PE mode), not vendor-failed, not supplementary
         // or secondary alignment and not PCR duplicate
-        if ((!static_cast<bool>(rec.flag() & seqan3::sam_flag::proper_pair) && args.mode == "PE") ||
+        if ((!static_cast<bool>(rec.flag() & seqan3::sam_flag::paired) && args.mode == "PE") ||
             static_cast<bool>(rec.flag() & seqan3::sam_flag::unmapped) ||
             static_cast<bool>(rec.flag() & seqan3::sam_flag::secondary_alignment) ||
             static_cast<bool>(rec.flag() & seqan3::sam_flag::failed_filter) ||
