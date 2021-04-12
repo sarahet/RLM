@@ -32,5 +32,5 @@ message (STATUS "${FontBold}You can run `make` to build the application.${FontRe
 
 ## TEST
 
-# enable_testing ()
-# add_subdirectory (test EXCLUDE_FROM_ALL)
+enable_testing ()
+add_subdirectory (test EXCLUDE_FROM_ALL)
