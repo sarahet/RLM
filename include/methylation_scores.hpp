@@ -22,6 +22,7 @@
 #pragma once
 
 #include <cmath>
+#include <numeric>
 
 #include "data_structures.hpp"
 
@@ -33,7 +34,7 @@ using sum_transitions_t = double;
 double calculate_transitions_per_read(std::vector<uint16_t> const & cpg_config)
 {
     uint16_t transitions = 0;
-    for (size_t i = 0; i < cpg_config.size() - 1; i++)
+    for (size_t i = 0; i < (cpg_config.size() - 1); i++)
     {
         if (cpg_config[i] != cpg_config[i+1])
             transitions++;
@@ -45,7 +46,7 @@ double calculate_transitions_per_read(std::vector<uint16_t> const & cpg_config)
 uint16_t calculate_discordance_per_read(std::vector<uint16_t> const & cpg_config)
 {
     uint16_t transitions = 0;
-    for (size_t i = 0; i < cpg_config.size() - 1; i++)
+    for (size_t i = 0; i < (cpg_config.size() - 1); i++)
     {
         if (cpg_config[i] != cpg_config[i+1])
             transitions++;

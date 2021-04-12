@@ -103,6 +103,7 @@ int arg_conv1(cmd_arguments & args)
     {
         case sequencing_type::RRBS:  return arg_conv2<calc_pdr_score, calc_entropy_score, true>(args);
         case sequencing_type::WGBS:  return arg_conv2<calc_pdr_score, calc_entropy_score, false>(args);
+        default: throw "Undefined sequencing type requested.";
     }
 }
 

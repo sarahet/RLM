@@ -23,6 +23,8 @@
 
 #include <vector>
 
+#include <seqan3/io/sam_file/sam_tag_dictionary.hpp>
+
 using seqan3::operator""_tag;
 
 // Define score types
