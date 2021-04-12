@@ -106,7 +106,7 @@ void insert_kmer(size_t const & reference_id,
 }
 
 // Internal function to process a single BAM record
-void process_bam_record_impl(std::ofstream & output_stream,
+bool process_bam_record_impl(std::ofstream & output_stream,
                              read_type const & tag,
                              size_t const & reference_id,
                              size_t const & reference_position,
@@ -142,7 +142,7 @@ void process_bam_record_impl(std::ofstream & output_stream,
     cpg_pos = find_cpg_pos(ref_sequence);
 
     if (cpg_pos.size() < 3)
-        return;
+        return true;
 
     // For every CpG determine unmethylated/methylated status.
     // For reads coming from the forward strand, the position of the 'C' needs to be evaluated.
@@ -176,7 +176,7 @@ void process_bam_record_impl(std::ofstream & output_stream,
         }
     }
     if (skip)
-        return;
+        return skip;
 
     // Prepare output
     uint16_t num_methyl_cpgs = std::accumulate(cpg_config.begin(), cpg_config.end(), 0);
@@ -195,6 +195,8 @@ void process_bam_record_impl(std::ofstream & output_stream,
                   << calculate_discordance_per_read(cpg_config) << "\t"
                   << calculate_transitions_per_read(cpg_config) << "\t"
                   << static_cast<double>(num_methyl_cpgs) / cpg_config.size() << "\n";
+
+    return skip;
 }
 
 // Outer wrapper function overload for single read score only
@@ -241,19 +243,23 @@ void process_bam_record(std::ofstream & output_stream,
     std::vector<uint16_t> cpg_pos;
     std::vector<uint16_t> cpg_config;
 
-    process_bam_record_impl(output_stream,
-                            tag,
-                            reference_id,
-                            reference_position,
-                            sequence,
-                            id,
-                            ref_ids,
-                            genome_seqs,
-                            cpg_pos,
-                            cpg_config);
+    bool skip = process_bam_record_impl(output_stream,
+                                        tag,
+                                        reference_id,
+                                        reference_position,
+                                        sequence,
+                                        id,
+                                        ref_ids,
+                                        genome_seqs,
+                                        cpg_pos,
+                                        cpg_config);
 
-    int16_t offset = tag == read_type::REV ? -1 : 1;
-    insert_CpG(reference_id, reference_position, offset, all_CpGs, cpg_pos, cpg_config);
+    if (!skip)
+    {
+        int16_t offset = tag == read_type::REV ? -1 : 1;
+        insert_CpG(reference_id, reference_position, offset, all_CpGs, cpg_pos, cpg_config);
+    }
+
 }
 
 // Outer wrapper function overload for entropy/epipolymorphism scores
@@ -272,19 +278,22 @@ void process_bam_record(std::ofstream & output_stream,
     std::vector<uint16_t> cpg_pos;
     std::vector<uint16_t> cpg_config;
 
-    process_bam_record_impl(output_stream,
-                            tag,
-                            reference_id,
-                            reference_position,
-                            sequence,
-                            id,
-                            ref_ids,
-                            genome_seqs,
-                            cpg_pos,
-                            cpg_config);
+    bool skip = process_bam_record_impl(output_stream,
+                                        tag,
+                                        reference_id,
+                                        reference_position,
+                                        sequence,
+                                        id,
+                                        ref_ids,
+                                        genome_seqs,
+                                        cpg_pos,
+                                        cpg_config);
 
-    int16_t offset = tag == read_type::REV ? -1 : 1;
-    insert_kmer(reference_id, reference_position, offset, all_kmers, cpg_pos, cpg_config);
+    if (!skip)
+    {
+        int16_t offset = tag == read_type::REV ? -1 : 1;
+        insert_kmer(reference_id, reference_position, offset, all_kmers, cpg_pos, cpg_config);
+    }
 }
 
 // Outer wrapper function overload for all scores
@@ -303,18 +312,21 @@ void process_bam_record(std::ofstream & output_stream,
     std::vector<uint16_t> cpg_pos;
     std::vector<uint16_t> cpg_config;
 
-    process_bam_record_impl(output_stream,
-                            tag,
-                            reference_id,
-                            reference_position,
-                            sequence,
-                            id,
-                            ref_ids,
-                            genome_seqs,
-                            cpg_pos,
-                            cpg_config);
+    bool skip = process_bam_record_impl(output_stream,
+                                        tag,
+                                        reference_id,
+                                        reference_position,
+                                        sequence,
+                                        id,
+                                        ref_ids,
+                                        genome_seqs,
+                                        cpg_pos,
+                                        cpg_config);
 
-    int16_t offset = tag == read_type::REV ? -1 : 1;
-    insert_CpG(reference_id, reference_position, offset, all_CpGs, cpg_pos, cpg_config);
-    insert_kmer(reference_id, reference_position, offset, all_kmers, cpg_pos, cpg_config);
+    if (!skip)
+    {
+        int16_t offset = tag == read_type::REV ? -1 : 1;
+        insert_CpG(reference_id, reference_position, offset, all_CpGs, cpg_pos, cpg_config);
+        insert_kmer(reference_id, reference_position, offset, all_kmers, cpg_pos, cpg_config);
+    }
 }
