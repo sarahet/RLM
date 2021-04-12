@@ -49,45 +49,50 @@ All options available in RLM:
 
 --version-check           Whether to check for the newest app version. Default: true.
 
--b, --bam                 BAM or SAM file (best sorted by position and after deduplication). The input file 
-                          must exist and read permissions must be granted. Valid file extensions are: 
-                          [sam, bam].
+-b, --bam                 BAM or SAM file (best sorted by position and after deduplication). The 
+                          input file must exist and read permissions must be granted. Valid file 
+                          extensions are: [sam, bam].
                           
--r, --reference           Reference genome used to align the BAM file. The input file must exist and read 
-                          permissions must be granted. Valid file extensions are: [fa, fasta].
+-r, --reference           Reference genome used to align the BAM file. The input file must exist 
+                          and read permissions must be granted. Valid file extensions are: 
+                          [fa, fasta].
                           
 -m, --mode                Sequencing mode. Value must be one of [SE,PE].
 
--s, --score               The score(s) to compute. For 'entropy', 'pdr' and 'all' the single read output is 
-                          always computed. Value must be one of [single_read,entropy,pdr,all].
+-s, --score               The score(s) to compute. For 'entropy', 'pdr' and 'all' the single 
+                          read output is always computed. Value must be one of 
+                          [single_read,entropy,pdr,all].
                           
--a, --aligner             The alignment tool used to create the BAM file. Default: bsmap. Value must be one of 
-                          [bsmap,bismark,segemehl].
+-a, --aligner             The alignment tool used to create the BAM file. Default: bsmap. Value 
+                          must be one of [bsmap,bismark,segemehl].
                           
--t, --threads             Number of threads (only used to parallelize decompression of the BAM file, therefore 
-                          it is not recommended to set it extremely high). Default: 8. Value must be in range 
-                          [1,1000].
+-t, --threads             Number of threads (only used to parallelize decompression of the BAM 
+                          file, therefore  it is not recommended to set it extremely high). 
+                          Default: 8. Value must be in range [1,1000].
                           
--c, --coverage            Minimum number of reads required to report a CpG or kmer for 'pdr' and 'entropy' 
-                          mode. Default: 10. Value must be in range [1,1000].
+-c, --coverage            Minimum number of reads required to report a CpG or kmer for 'pdr' 
+                          and 'entropy' mode. Default: 10. Value must be in range [1,1000].
                           
--q, --mapping_quality     Minimum mapping quality required to consider a read. Default: 30. Value must be in 
-                          range [0,255].
+-q, --mapping_quality     Minimum mapping quality required to consider a read. Default: 30. 
+                          Value must be in range [0,255].
                           
 -d, --rrbs                If BAM file contains reads from an RRBS experiment or not.
 
--o, --output_single_read  Output file with DNA methylation information for every single read with at least 3
-                          CpGs. Default: "output_single_read_info.bed". Write permissions must be granted. 
+-o, --output_single_read  Output file with DNA methylation information for every single read 
+                          with at least 3 CpGs. Default: "output_single_read_info.bed". Write 
+                          permissions must be granted. 
                           Valid file extensions are: [bed, tsv, txt].
                           
--e, --output_entropy      Output file with entropy, epipolymorphism and epiallele information for every 4-mer 
-                          spanned by complete reads. Default: "output_entropy.bed". Write permissions must be 
-                          granted. Valid file extensions are: [bed, tsv, txt].
+-e, --output_entropy      Output file with entropy, epipolymorphism and epiallele information 
+                          for every 4-mer spanned by complete reads. 
+                          Default: "output_entropy.bed". Write permissions must be granted. 
+                          Valid file extensions are: [bed, tsv, txt].
                           
--p, --output_pdr          Output file with read-transition score and percent discordant reads for every CpG 
-                          spanned by complete reads. Only reads that cover at least 3 CpGs are considered. 
-                          Default: "output_pdr.bed". Write permissions must be granted. Valid file extensions 
-                          are: [bed, tsv, txt].
+-p, --output_pdr          Output file with read-transition score and percent discordant reads
+                          for every CpG spanned by complete reads. Only reads that cover at 
+                          least 3 CpGs are considered. Default: "output_pdr.bed". Write 
+                          permissions must be granted. 
+                          Valid file extensions are: [bed, tsv, txt].
 ```
 
 Please note: Multiple threads are only used for decompression of the BAM file and not for processing of the single records.
