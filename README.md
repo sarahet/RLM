@@ -1,5 +1,7 @@
-# RLM
+# RLM 
 Read level DNA methylation analysis of bisulfite converted sequencing data
+
+![](https://github.com/sarahet/RLM/actions/workflows/ci.yml/badge.svg)
 
 ## Dependencies
 * GCC   (minimum required version: 7)
