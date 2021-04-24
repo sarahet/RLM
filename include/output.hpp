@@ -26,6 +26,7 @@
 using num_reads_t = uint32_t;
 using num_discordant_reads_t = uint32_t;
 using sum_transitions_t = double;
+using num_methyl_cpgs_t = uint32_t;
 
 // Write header for 'single_read' mode
 void write_header_read_info(std::ofstream & output_stream)
@@ -75,6 +76,7 @@ void write_header_entropy(std::ofstream & output_stream)
                       << "GGgG\t"
                       << "GGGg\t"
                       << "GGGG\t"
+                      << "mean_methylation\t"
                       << "coverage\n";
     }
     else
@@ -93,6 +95,7 @@ void write_header_pdr(std::ofstream & output_stream)
                       << "end\t"
                       << "PDR\t"
                       << "RTS\t"
+                      << "mean_methylation\t"
                       << "coverage\n";
     }
     else
@@ -115,8 +118,8 @@ void write_record_entropy(std::ofstream & output_stream,
     output_stream << ref_ids[pos.ref_id] << "\t"
                   << pos.start << "\t"
                   << pos.start + 2 << "\t"
-                  << calculate_entropy_across_reads(epialleles) << "\t"
-                  << calculate_epipolymorphism_across_reads(epialleles) << "\t"
+                  << calculate_entropy_across_reads(epialleles, coverage) << "\t"
+                  << calculate_epipolymorphism_across_reads(epialleles, coverage) << "\t"
                   << epialleles[0] << "\t"
                   << epialleles[1] << "\t"
                   << epialleles[2] << "\t"
@@ -133,6 +136,7 @@ void write_record_entropy(std::ofstream & output_stream,
                   << epialleles[13] << "\t"
                   << epialleles[14] << "\t"
                   << epialleles[15] << "\t"
+                  << calculate_avg_kmer_methylation_across_reads(epialleles, coverage) << "\t"
                   << coverage << "\n";
 }
 
@@ -140,7 +144,7 @@ void write_record_entropy(std::ofstream & output_stream,
 void write_record_pdr(std::ofstream & output_stream,
                       std::deque<std::string> const & ref_ids,
                       GenomePosition const & pos,
-                      std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t> const & position_counts,
+                      std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> const & position_counts,
                       uint32_t const & coverage_filter)
 {
     if (std::get<0>(position_counts) < coverage_filter)
@@ -151,5 +155,6 @@ void write_record_pdr(std::ofstream & output_stream,
                   << pos.start + 2 << "\t"
                   << calculate_avg_discordance_across_reads(position_counts) << "\t"
                   << calculate_avg_transitions_across_reads(position_counts) << "\t"
+                  << calculate_avg_methylation_across_reads(position_counts) << "\t"
                   << std::get<0>(position_counts) << "\n";
 }

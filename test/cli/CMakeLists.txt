@@ -1,4 +1,14 @@
 cmake_minimum_required (VERSION 3.8)
 
 add_cli_test (rlm_options_test.cpp)
-# target_use_datasources (rlm_options_test FILES in.fasta)
+target_use_datasources (rlm_options_test FILES chrM.fa)
+
+add_cli_test (rlm_single_read_test.cpp)
+target_use_datasources (rlm_single_read_test FILES chrM.fa)
+target_use_datasources (rlm_single_read_test FILES test_ref.fa)
+target_use_datasources (rlm_single_read_test FILES test_skipped_reads.sam)
+target_use_datasources (rlm_single_read_test FILES control_skipped_reads.bed)
+target_use_datasources (rlm_single_read_test FILES test_overlap_reads.bam)
+target_use_datasources (rlm_single_read_test FILES control_overlap_reads.bed)
+target_use_datasources (rlm_single_read_test FILES test_single_reads.bam)
+target_use_datasources (rlm_single_read_test FILES control_single_reads.bed)

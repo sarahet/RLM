@@ -31,7 +31,6 @@ struct cmd_arguments
     std::filesystem::path output_file_entropy{"output_entropy.bed"};
     std::filesystem::path output_file_pdr{"output_pdr.bed"};
 
-    uint64_t threads = 8u;
     uint32_t verbosity = 0;
     uint32_t mapq_filter = 30;
     uint32_t coverage_filter = 10;
@@ -74,12 +73,6 @@ void initialise_argument_parser(seqan3::argument_parser & parser, cmd_arguments 
                       "The alignment tool used to create the BAM file.",
                       seqan3::option_spec::standard,
                       seqan3::value_list_validator{"bsmap", "bismark", "segemehl"});
-
-    parser.add_option(args.threads, 't', "threads",
-                      "Number of threads (only used to parallelize decompression of the BAM file, therefore it is not "
-                      "recommended to set it extremely high).",
-                      seqan3::option_spec::advanced,
-                      seqan3::arithmetic_range_validator{1, 1000});
 
     parser.add_option(args.coverage_filter, 'c', "coverage",
                       "Minimum number of reads required to report a CpG or kmer for 'pdr' and 'entropy' mode.",

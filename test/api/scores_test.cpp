@@ -6,39 +6,39 @@
 
 TEST(scores, entropy)
 {
-    std::vector<uint32_t> vec1{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    double entropy1 = calculate_entropy_across_reads(vec1);
+    std::vector<uint32_t> vec1{16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    double entropy1 = calculate_entropy_across_reads(vec1, 16);
     EXPECT_EQ(static_cast<double>(0), entropy1);
 
-    std::vector<uint32_t> vec2{0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    double entropy2 = calculate_entropy_across_reads(vec2);
+    std::vector<uint32_t> vec2{0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    double entropy2 = calculate_entropy_across_reads(vec2, 16);
     EXPECT_EQ(static_cast<double>(0), entropy2);
 
     std::vector<uint32_t> vec3(16, 1);
-    double entropy3 = calculate_entropy_across_reads(vec3);
+    double entropy3 = calculate_entropy_across_reads(vec3, 16);
     EXPECT_EQ(static_cast<double>(1), entropy3);
 
-    std::vector<uint32_t> vec4{0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
-    double entropy4 = calculate_entropy_across_reads(vec4);
+    std::vector<uint32_t> vec4{0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8};
+    double entropy4 = calculate_entropy_across_reads(vec4, 16);
     EXPECT_EQ(static_cast<double>(0.25), entropy4);
 }
 
 TEST(scores, epipolymorphism)
 {
-    std::vector<uint32_t> vec1{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    double epipolymorphism1 = calculate_epipolymorphism_across_reads(vec1);
+    std::vector<uint32_t> vec1{16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    double epipolymorphism1 = calculate_epipolymorphism_across_reads(vec1, 16);
     EXPECT_EQ(static_cast<double>(0), epipolymorphism1);
 
-    std::vector<uint32_t> vec2{0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    double epipolymorphism2 = calculate_epipolymorphism_across_reads(vec2);
+    std::vector<uint32_t> vec2{0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    double epipolymorphism2 = calculate_epipolymorphism_across_reads(vec2, 16);
     EXPECT_EQ(static_cast<double>(0), epipolymorphism2);
 
     std::vector<uint32_t> vec3(16, 1);
-    double epipolymorphism3 = calculate_epipolymorphism_across_reads(vec3);
+    double epipolymorphism3 = calculate_epipolymorphism_across_reads(vec3, 16);
     EXPECT_EQ(static_cast<double>(0.9375), epipolymorphism3);
 
-    std::vector<uint32_t> vec4{0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
-    double epipolymorphism4 = calculate_epipolymorphism_across_reads(vec4);
+    std::vector<uint32_t> vec4{0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8};
+    double epipolymorphism4 = calculate_epipolymorphism_across_reads(vec4, 16);
     EXPECT_EQ(static_cast<double>(0.5), epipolymorphism4);
 }
 

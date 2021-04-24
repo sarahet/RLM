@@ -88,6 +88,24 @@ _sequencing_type_to_enum(bool const & rrbs)
     return sequencing_type::WGBS;
 }
 
+// Define mate types
+enum class mate_type : uint8_t
+{
+    SE,
+    PE
+};
+
+inline mate_type
+_mate_type_to_enum(std::string const & str)
+{
+    if (str == "SE")
+        return mate_type::SE;
+    else if (str == "PE")
+        return mate_type::PE;
+
+    return mate_type::PE;
+}
+
 // Define read type
 enum class read_type : uint8_t
 {

@@ -27,6 +27,7 @@ using seqan3::operator""_dna5;
 using num_reads_t = uint32_t;
 using num_discordant_reads_t = uint32_t;
 using sum_transitions_t = double;
+using num_methyl_cpgs_t = uint32_t;
 
 // Find positions of all CpGs in a sequence
 template <typename ref_type>
@@ -47,8 +48,7 @@ std::vector<uint16_t> find_cpg_pos(ref_type const & reference)
 // Insert CpG into map to store it until all BAM records are read
 void insert_CpG(size_t const & reference_id,
                 size_t const & reference_position,
-                size_t const & offset,
-                std::map<GenomePosition, std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t> > & all_CpGs,
+                std::map<GenomePosition, std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> > & all_CpGs,
                 std::vector<uint16_t> const & cpg_pos,
                 std::vector<uint16_t> const & cpg_config)
 {
@@ -56,19 +56,20 @@ void insert_CpG(size_t const & reference_id,
     {
         GenomePosition pos;
         pos.ref_id = reference_id;
-        pos.start = reference_position + offset + cpg_pos[i];
+        pos.start = reference_position + cpg_pos[i];
 
         auto it = all_CpGs.find(pos);
 
         if (it != all_CpGs.end())
         {
             std::get<0>(it->second)++;
-            std::get<1>(it->second) += cpg_config[i];
+            std::get<1>(it->second) += calculate_discordance_per_read(cpg_config);
             std::get<2>(it->second) += calculate_transitions_per_read(cpg_config);
+            std::get<3>(it->second) += cpg_config[i];
         }
         else
         {
-            all_CpGs.insert(std::make_pair(pos, std::make_tuple(1, cpg_config[i], calculate_transitions_per_read(cpg_config))));
+            all_CpGs.insert(std::make_pair(pos, std::make_tuple(1, calculate_discordance_per_read(cpg_config), calculate_transitions_per_read(cpg_config), cpg_config[i])));
         }
     }
 }
@@ -76,7 +77,6 @@ void insert_CpG(size_t const & reference_id,
 // Insert kmer into map to store it until all BAM records are read
 void insert_kmer(size_t const & reference_id,
                  size_t const & reference_position,
-                 size_t const & offset,
                  std::map<GenomePosition, std::vector<uint32_t> > & all_kmers,
                  std::vector<uint16_t> const & cpg_pos,
                  std::vector<uint16_t> const & cpg_config)
@@ -88,7 +88,7 @@ void insert_kmer(size_t const & reference_id,
     {
         GenomePosition pos;
         pos.ref_id = reference_id;
-        pos.start = reference_position + offset + cpg_pos[i];
+        pos.start = reference_position + cpg_pos[i];
 
         auto it = all_kmers.find(pos);
 
@@ -122,21 +122,9 @@ bool process_bam_record_impl(std::ofstream & output_stream,
     static constexpr std::array<char, 2> methyl_context_char = {'g', 'G'};
 
     // Extract reference sequence matching the reads.
-    // For reads coming from the forward strand, the reference position is shifted up by one.
-    // For reads coming from the reverse strand, the reference position is shifted down by one.
-    seqan3::dna5_vector ref_sequence;
-    if (tag == read_type::REV)
-    {
-        ref_sequence = genome_seqs[reference_id]
-                     | seqan3::views::slice(reference_position - 1, reference_position + sequence.size() - 1)
-                     | seqan3::views::to<seqan3::dna5_vector>;
-    }
-    else
-    {
-        ref_sequence = genome_seqs[reference_id]
-                     | seqan3::views::slice(reference_position + 1, reference_position + sequence.size() + 1)
-                     | seqan3::views::to<seqan3::dna5_vector>;
-    }
+    seqan3::dna5_vector ref_sequence = genome_seqs[reference_id]
+				                     | seqan3::views::slice(reference_position, reference_position + sequence.size())
+				                     | seqan3::views::to<seqan3::dna5_vector>;
 
     // Find all CpG positions
     cpg_pos = find_cpg_pos(ref_sequence);
@@ -152,9 +140,9 @@ bool process_bam_record_impl(std::ofstream & output_stream,
     {
         if (tag == read_type::REV)
         {
-            if (sequence[cpg_pos[i]] == 'A'_dna5 || sequence[cpg_pos[i]] == 'G'_dna5)
+            if ((sequence[cpg_pos[i] + 1] == 'A'_dna5 || sequence[cpg_pos[i] + 1] == 'G'_dna5) && sequence[cpg_pos[i]] == 'C'_dna5)
             {
-                cpg_config.push_back(methyl_context[sequence[cpg_pos[i]].to_rank()]);
+                cpg_config.push_back(methyl_context[sequence[cpg_pos[i] + 1].to_rank()]);
             }
             else
             {
@@ -164,9 +152,9 @@ bool process_bam_record_impl(std::ofstream & output_stream,
         }
         else
         {
-            if (sequence[cpg_pos[i] + 1] == 'C'_dna5 || sequence[cpg_pos[i] + 1] == 'T'_dna5)
+            if ((sequence[cpg_pos[i]] == 'C'_dna5 || sequence[cpg_pos[i]] == 'T'_dna5) && sequence[cpg_pos[i] + 1] == 'G'_dna5)
             {
-                cpg_config.push_back(methyl_context[sequence[cpg_pos[i] + 1].to_rank()]);
+                cpg_config.push_back(methyl_context[sequence[cpg_pos[i]].to_rank()]);
             }
             else
             {
@@ -208,7 +196,7 @@ void process_bam_record(std::ofstream & output_stream,
                         std::string const & id,
                         std::deque<std::string> const & ref_ids,
                         std::vector<seqan3::dna5_vector> const & genome_seqs,
-                        std::map<GenomePosition, std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t> > & all_CpGs,
+                        std::map<GenomePosition, std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> > & all_CpGs,
                         std::map<GenomePosition, std::vector<uint32_t> > & all_kmers,
                         score_tag<false, false>)
 {
@@ -236,7 +224,7 @@ void process_bam_record(std::ofstream & output_stream,
                         std::string const & id,
                         std::deque<std::string> const & ref_ids,
                         std::vector<seqan3::dna5_vector> const & genome_seqs,
-                        std::map<GenomePosition, std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t> > & all_CpGs,
+                        std::map<GenomePosition, std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> > & all_CpGs,
                         std::map<GenomePosition, std::vector<uint32_t> > & all_kmers,
                         score_tag<true, false>)
 {
@@ -256,8 +244,7 @@ void process_bam_record(std::ofstream & output_stream,
 
     if (!skip)
     {
-        int16_t offset = tag == read_type::REV ? -1 : 1;
-        insert_CpG(reference_id, reference_position, offset, all_CpGs, cpg_pos, cpg_config);
+        insert_CpG(reference_id, reference_position, all_CpGs, cpg_pos, cpg_config);
     }
 
 }
@@ -271,7 +258,7 @@ void process_bam_record(std::ofstream & output_stream,
                         std::string const & id,
                         std::deque<std::string> const & ref_ids,
                         std::vector<seqan3::dna5_vector> const & genome_seqs,
-                        std::map<GenomePosition, std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t> > & all_CpGs,
+                        std::map<GenomePosition, std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> > & all_CpGs,
                         std::map<GenomePosition, std::vector<uint32_t> > & all_kmers,
                         score_tag<false, true>)
 {
@@ -291,8 +278,7 @@ void process_bam_record(std::ofstream & output_stream,
 
     if (!skip)
     {
-        int16_t offset = tag == read_type::REV ? -1 : 1;
-        insert_kmer(reference_id, reference_position, offset, all_kmers, cpg_pos, cpg_config);
+        insert_kmer(reference_id, reference_position, all_kmers, cpg_pos, cpg_config);
     }
 }
 
@@ -305,7 +291,7 @@ void process_bam_record(std::ofstream & output_stream,
                         std::string const & id,
                         std::deque<std::string> const & ref_ids,
                         std::vector<seqan3::dna5_vector> const & genome_seqs,
-                        std::map<GenomePosition, std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t> > & all_CpGs,
+                        std::map<GenomePosition, std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> > & all_CpGs,
                         std::map<GenomePosition, std::vector<uint32_t> > & all_kmers,
                         score_tag<true, true>)
 {
@@ -325,8 +311,7 @@ void process_bam_record(std::ofstream & output_stream,
 
     if (!skip)
     {
-        int16_t offset = tag == read_type::REV ? -1 : 1;
-        insert_CpG(reference_id, reference_position, offset, all_CpGs, cpg_pos, cpg_config);
-        insert_kmer(reference_id, reference_position, offset, all_kmers, cpg_pos, cpg_config);
+        insert_CpG(reference_id, reference_position, all_CpGs, cpg_pos, cpg_config);
+        insert_kmer(reference_id, reference_position, all_kmers, cpg_pos, cpg_config);
     }
 }

@@ -29,6 +29,7 @@
 using num_reads_t = uint32_t;
 using num_discordant_reads_t = uint32_t;
 using sum_transitions_t = double;
+using num_methyl_cpgs_t = uint32_t;
 
 // Calculate transirion score of a single read
 double calculate_transitions_per_read(std::vector<uint16_t> const & cpg_config)
@@ -55,21 +56,26 @@ uint16_t calculate_discordance_per_read(std::vector<uint16_t> const & cpg_config
 }
 
 // Calculate average RTS for a CpG
-double calculate_avg_transitions_across_reads(std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t> const & position_counts)
+double calculate_avg_transitions_across_reads(std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> const & position_counts)
 {
     return std::get<2>(position_counts) / std::get<0>(position_counts);
 }
 
 // Calculate average discordance for a CpG
-double calculate_avg_discordance_across_reads(std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t> const & position_counts)
+double calculate_avg_discordance_across_reads(std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> const & position_counts)
 {
     return static_cast<double>(std::get<1>(position_counts)) / std::get<0>(position_counts);
 }
 
-// Calculate entropy for a 4-mer
-double calculate_entropy_across_reads(std::vector<uint32_t> const & epialleles)
+// Calculate average methylation for a CpG
+double calculate_avg_methylation_across_reads(std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> const & position_counts)
 {
-    uint32_t num_reads = std::accumulate(epialleles.begin(), epialleles.end(), 0);
+    return static_cast<double>(std::get<3>(position_counts)) / std::get<0>(position_counts);
+}
+
+// Calculate entropy for a 4-mer
+double calculate_entropy_across_reads(std::vector<uint32_t> const & epialleles, uint32_t const & num_reads)
+{
     double entropy = 0;
 
     for (size_t i = 0; i < epialleles.size(); i++)
@@ -83,9 +89,8 @@ double calculate_entropy_across_reads(std::vector<uint32_t> const & epialleles)
 }
 
 // Calculate epipolymorphism for a 4-mer
-double calculate_epipolymorphism_across_reads(std::vector<uint32_t> const & epialleles)
+double calculate_epipolymorphism_across_reads(std::vector<uint32_t> const & epialleles, uint32_t const & num_reads)
 {
-    uint32_t num_reads = std::accumulate(epialleles.begin(), epialleles.end(), 0);
     double epipolymorphism = 0;
 
     for (size_t i = 0; i < epialleles.size(); i++)
@@ -95,4 +100,27 @@ double calculate_epipolymorphism_across_reads(std::vector<uint32_t> const & epia
 
     epipolymorphism = 1 - epipolymorphism;
     return epipolymorphism;
+}
+
+// Calculate average methylation for a 4-mer
+double calculate_avg_kmer_methylation_across_reads(std::vector<uint32_t> const & epialleles, uint32_t const & num_reads)
+{
+    uint32_t methylated_cpgs =
+    epialleles[1] * 1 +
+    epialleles[2] * 1 +
+    epialleles[3] * 2 +
+    epialleles[4] * 1 +
+    epialleles[5] * 2 +
+    epialleles[6] * 2 +
+    epialleles[7] * 3 +
+    epialleles[8] * 1 +
+    epialleles[9] * 2 +
+    epialleles[10] * 2 +
+    epialleles[11] * 3 +
+    epialleles[12] * 2 +
+    epialleles[13] * 3 +
+    epialleles[14] * 3 +
+    epialleles[15] * 4;
+
+    return static_cast<double>(methylated_cpgs) / (num_reads * 4);
 }

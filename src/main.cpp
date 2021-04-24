@@ -52,7 +52,10 @@ int arg_conv1(cmd_arguments & args);
 template <bool calc_pdr_score,  bool calc_entropy_score, bool rrbs>
 int arg_conv2(cmd_arguments & args);
 
-template <bool calc_pdr_score,  bool calc_entropy_score, bool rrbs, align_type aligner>
+template <bool calc_pdr_score,  bool calc_entropy_score, bool rrbs, bool single_end>
+int arg_conv3(cmd_arguments & args);
+
+template <bool calc_pdr_score,  bool calc_entropy_score, bool rrbs, bool single_end, align_type aligner>
 int real_main(cmd_arguments & args);
 
 // Main function to parse arguments and set template arguments depending on input score selected
@@ -110,15 +113,27 @@ int arg_conv1(cmd_arguments & args)
 template <bool calc_pdr_score,  bool calc_entropy_score, bool rrbs>
 int arg_conv2(cmd_arguments & args)
 {
+    mate_type type = _mate_type_to_enum(args.mode);
+    switch (type)
+    {
+        case mate_type::SE:  return arg_conv3<calc_pdr_score, calc_entropy_score, rrbs, true>(args);
+        case mate_type::PE:  return arg_conv3<calc_pdr_score, calc_entropy_score, rrbs, false>(args);
+        default: throw "Undefined sequencing mode requested.";
+    }
+}
+
+template <bool calc_pdr_score,  bool calc_entropy_score, bool rrbs, bool single_end>
+int arg_conv3(cmd_arguments & args)
+{
     align_type type = _aligner_name_to_enum(args.aligner);
 
     try
     {
         switch (type)
         {
-            case align_type::BSMAP:     return real_main<calc_pdr_score, calc_entropy_score, rrbs, align_type::BSMAP>(args);
-            case align_type::BISMARK:   return real_main<calc_pdr_score, calc_entropy_score, rrbs, align_type::BISMARK>(args);
-            case align_type::SEGEMEHL:  return real_main<calc_pdr_score, calc_entropy_score, rrbs, align_type::SEGEMEHL>(args);
+            case align_type::BSMAP:     return real_main<calc_pdr_score, calc_entropy_score, rrbs, single_end, align_type::BSMAP>(args);
+            case align_type::BISMARK:   return real_main<calc_pdr_score, calc_entropy_score, rrbs, single_end, align_type::BISMARK>(args);
+            case align_type::SEGEMEHL:  return real_main<calc_pdr_score, calc_entropy_score, rrbs, single_end, align_type::SEGEMEHL>(args);
             default: throw "Undefined alignment tool requested.";
         }
     }
@@ -130,13 +145,13 @@ int arg_conv2(cmd_arguments & args)
 }
 
 // Real main function containing the program
-template <bool calc_pdr_score, bool calc_entropy_score, bool rrbs, align_type aligner>
+template <bool calc_pdr_score, bool calc_entropy_score, bool rrbs, bool single_end, align_type aligner>
 int real_main(cmd_arguments & args)
 {
     std::cout << "Starting RLM" << std::endl;
 
     // Set threads for BAM decompression
-    seqan3::contrib::bgzf_thread_count = args.threads;
+    seqan3::contrib::bgzf_thread_count = 1;
 
     // Load genome reference file
     std::cout << "Reading the reference genome" << std::endl;
@@ -190,8 +205,9 @@ int real_main(cmd_arguments & args)
     using num_reads_t = uint32_t;
     using num_discordant_reads_t = uint32_t;
     using sum_transitions_t = double;
+    using num_methyl_cpgs_t = uint32_t;
 
-    std::map<GenomePosition, std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t> > all_CpGs;
+    std::map<GenomePosition, std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> > all_CpGs;
 
     // Map to store 4-mers with epialleles
     std::map<GenomePosition, std::vector<uint32_t> > all_kmers;
@@ -266,7 +282,7 @@ int real_main(cmd_arguments & args)
             rec_type = _read_tag_segemehl_to_enum(rec.tags().get<"XB"_tag>());
         }
 
-        if (args.mode == "SE")
+        if constexpr (single_end)
         {
             process_bam_record(output_stream,
                                rec_type,
@@ -290,7 +306,7 @@ int real_main(cmd_arguments & args)
                                        rec.sequence().size() + rec.reference_position().value()) -
                               std::max(records.at(rec.id()).reference_position().value(), rec.reference_position().value());
 
-                if (overlap > 0)
+                if (overlap >= 0)
                 {
                     // First check if one read is included in the other - just process the longer one in this case
                     if (overlap == records.at(rec.id()).sequence().size())
