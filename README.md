@@ -74,7 +74,7 @@ All options available in RLM:
 -q, --mapping_quality     Minimum mapping quality required to consider a read. Default: 30.
                           Value must be in range [0,255].
 
--d, --rrbs                If BAM file contains reads from an RRBS experiment or not.
+-d, --rrbs                Set if BAM file contains reads from an RRBS experiment.
 
 -o, --output_single_read  Output file with DNA methylation information for every single read
                           with at least 3 CpGs. Default: "output_single_read_info.bed". Write
