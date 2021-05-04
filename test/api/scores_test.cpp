@@ -87,3 +87,22 @@ TEST(scores, read_discordance)
     uint16_t discordance5 = calculate_discordance_per_read(vec5);
     EXPECT_EQ(static_cast<uint16_t>(1), discordance5);
 }
+
+TEST(scores, methylation_kmer)
+{
+    std::vector<uint32_t> vec1{16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    double dname1 = calculate_avg_kmer_methylation_across_reads(vec1, 16);
+    EXPECT_EQ(static_cast<double>(0), dname1);
+
+    std::vector<uint32_t> vec2{0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    double dname2 = calculate_avg_kmer_methylation_across_reads(vec2, 16);
+    EXPECT_EQ(static_cast<double>(16) / (16 * 4), dname2);
+
+    std::vector<uint32_t> vec3(16, 1);
+    double dname3 = calculate_avg_kmer_methylation_across_reads(vec3, 16);
+    EXPECT_EQ(static_cast<double>(32) / (16 * 4), dname3);
+
+    std::vector<uint32_t> vec4{0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8};
+    double dname4 = calculate_avg_kmer_methylation_across_reads(vec4, 16);
+    EXPECT_EQ(static_cast<double>((8 + 8 * 4)) / (16 * 4), dname4);
+}

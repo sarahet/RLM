@@ -30,6 +30,30 @@ declare_datasource (FILE test_single_reads.bam
                     URL ${CMAKE_SOURCE_DIR}/test/data/test_single_reads.bam
                     URL_HASH SHA256=8e9627d7ffa26d848cf00045a41d9591815f6e71dd80cde496fe9a964b8b1109)
 
+declare_datasource (FILE test_single_reads_name_sorted.bam
+                    URL ${CMAKE_SOURCE_DIR}/test/data/test_single_reads_name_sorted.bam
+                    URL_HASH SHA256=2ccbac9ae58399d93bb7b2546c44d8adc0ef9f0d6421ac19504b1aaed4492cd8)
+
 declare_datasource (FILE control_single_reads.bed
                     URL ${CMAKE_SOURCE_DIR}/test/data/control_single_reads.bed
                     URL_HASH SHA256=1199da4cd754cee67168e6578709379fdc9405c0e55834d8eebbc8d199672c9d)
+
+declare_datasource (FILE test_rrbs.bam
+                    URL ${CMAKE_SOURCE_DIR}/test/data/test_rrbs.bam
+                    URL_HASH SHA256=b6495f08d7bb9a6af7145e8a00d5179a4734a58364a57ef34eaa350da59c1187)
+
+declare_datasource (FILE control_rrbs.bed
+                    URL ${CMAKE_SOURCE_DIR}/test/data/control_rrbs.bed
+                    URL_HASH SHA256=d41ccd067be8047e49752fcb4110f8e107956dbc68946b031cf7bc7a8f017798)
+
+declare_datasource (FILE test_bsmap.bam
+                    URL ${CMAKE_SOURCE_DIR}/test/data/test_bsmap.bam
+                    URL_HASH SHA256=d9817ccb301fccf4dcb83f3fe715daa68a189a337ea504d6145c88310db4fe8e)
+
+declare_datasource (FILE test_segemehl.bam
+                    URL ${CMAKE_SOURCE_DIR}/test/data/test_segemehl.bam
+                    URL_HASH SHA256=21b1aa9b1f7ca6cd701cd118908dea7400325d6977cba6b5a43fb6fa1befc9fd)
+
+declare_datasource (FILE test_bismark.bam
+                    URL ${CMAKE_SOURCE_DIR}/test/data/test_bismark.bam
+                    URL_HASH SHA256=ec426d6d992d054b5073c5d3ea7bb48cb1c702b64d73d767a02a8bd23edc45c3)

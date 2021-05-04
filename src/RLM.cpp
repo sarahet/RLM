@@ -250,22 +250,6 @@ int real_main(cmd_arguments & args)
         if (indel)
             continue;
 
-        // If RRBS mode, change potentially artifical bases to 'N'
-        if constexpr (rrbs)
-        {
-            if (args.mode == "SE" ||
-                (args.mode == "PE" && static_cast<bool>(rec.flag() & seqan3::sam_flag::first_in_pair)))
-            {
-                rec.sequence()[0] = 'N'_dna5;
-                rec.sequence()[1] = 'N'_dna5;
-            }
-            else
-            {
-                rec.sequence()[rec.sequence().size() - 1] = 'N'_dna5;
-                rec.sequence()[rec.sequence().size() - 2] = 'N'_dna5;
-            }
-        }
-
         // Set tag depending on aligner
         read_type rec_type;
 
@@ -280,6 +264,26 @@ int real_main(cmd_arguments & args)
         else
         {
             rec_type = _read_tag_segemehl_to_enum(rec.tags().get<"XB"_tag>());
+        }
+
+        // If RRBS mode, change potentially artifical bases to 'N'
+        if constexpr (rrbs)
+        {
+            if ((args.mode == "SE" ||
+                (args.mode == "PE" && static_cast<bool>(rec.flag() & seqan3::sam_flag::first_in_pair))) &&
+                rec_type == read_type::FWD)
+            {
+                rec.sequence() = rec.sequence()
+                               | seqan3::views::slice(1, rec.sequence().size())
+                               | seqan3::views::to<seqan3::dna5_vector>;
+                rec.reference_position().value() = rec.reference_position().value() + 1;
+            }
+            else
+            {
+                rec.sequence() = rec.sequence()
+                               | seqan3::views::slice(0, rec.sequence().size() - 1)
+                               | seqan3::views::to<seqan3::dna5_vector>;
+            }
         }
 
         if constexpr (single_end)
