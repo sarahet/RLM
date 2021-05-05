@@ -85,7 +85,8 @@ void initialise_argument_parser(seqan3::argument_parser & parser, cmd_arguments 
                       seqan3::arithmetic_range_validator{0, 255});
 
     parser.add_flag(args.rrbs, 'd', "rrbs",
-                    "If BAM file contains reads from an RRBS experiment or not.",
+                    "If BAM file contains reads from an RRBS experiment and reads should be trimmed in order to avoid bias of artifical CpGs. "
+                    "Do NOT use if you already accounted for this problem during trimming.",
                     seqan3::option_spec::advanced);
 
     parser.add_option(args.output_file_single_reads, 'o', "output_single_read",

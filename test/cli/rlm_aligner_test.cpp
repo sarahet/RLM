@@ -165,5 +165,4 @@ TEST_F(RLM, compare_bismark_segemehl)
             }
         }
     }
-
 }

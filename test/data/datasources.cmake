@@ -38,13 +38,9 @@ declare_datasource (FILE control_single_reads.bed
                     URL ${CMAKE_SOURCE_DIR}/test/data/control_single_reads.bed
                     URL_HASH SHA256=1199da4cd754cee67168e6578709379fdc9405c0e55834d8eebbc8d199672c9d)
 
-declare_datasource (FILE test_rrbs.bam
-                    URL ${CMAKE_SOURCE_DIR}/test/data/test_rrbs.bam
-                    URL_HASH SHA256=b6495f08d7bb9a6af7145e8a00d5179a4734a58364a57ef34eaa350da59c1187)
-
-declare_datasource (FILE control_rrbs.bed
-                    URL ${CMAKE_SOURCE_DIR}/test/data/control_rrbs.bed
-                    URL_HASH SHA256=d41ccd067be8047e49752fcb4110f8e107956dbc68946b031cf7bc7a8f017798)
+declare_datasource (FILE control_single_reads_rrbs.bed
+                    URL ${CMAKE_SOURCE_DIR}/test/data/control_single_reads_rrbs.bed
+                    URL_HASH SHA256=0bc0cb0079db972a3650ddb2c1e79f7c213813aa9bd8b8c4726a2edf93bcb157)
 
 declare_datasource (FILE test_bsmap.bam
                     URL ${CMAKE_SOURCE_DIR}/test/data/test_bsmap.bam

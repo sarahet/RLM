@@ -124,9 +124,9 @@ TEST_F(RLM, single_reads_name_sorted)
 
 TEST_F(RLM, rrbs)
 {
-    cli_test_result result = execute_app("RLM", "-b", data("test_rrbs.bam"), "-r", data("test_ref.fa"), "-m", "SE", "-s", "single_read", "-a", "bsmap", "--rrbs");
+    cli_test_result result = execute_app("RLM", "-b", data("test_single_reads.bam"), "-r", data("test_ref.fa"), "-m", "SE", "-s", "single_read", "-a", "bsmap", "--rrbs");
 
-    std::ifstream output ("output_single_read_info.bed");
+    std::ifstream output ("output_single_read_info_rrbs.bed");
     std::ifstream control (data("control_rrbs.bed"));
 
     std::string line;

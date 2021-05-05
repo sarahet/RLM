@@ -266,24 +266,28 @@ int real_main(cmd_arguments & args)
             rec_type = _read_tag_segemehl_to_enum(rec.tags().get<"XB"_tag>());
         }
 
-        // If RRBS mode, change potentially artifical bases to 'N'
-        if constexpr (rrbs)
+        // If RRBS mode, omit potentially artificial bases (should not be applied if already trimmed/accounted for)
+        if constexpr (rrbs && single_end)
         {
-            if ((args.mode == "SE" ||
-                (args.mode == "PE" && static_cast<bool>(rec.flag() & seqan3::sam_flag::first_in_pair))) &&
-                rec_type == read_type::FWD)
+            if (rec_type == read_type::FWD)
             {
                 rec.sequence() = rec.sequence()
-                               | seqan3::views::slice(1, rec.sequence().size())
+                               | seqan3::views::slice(0, rec.sequence().size() - 2)
                                | seqan3::views::to<seqan3::dna5_vector>;
-                rec.reference_position().value() = rec.reference_position().value() + 1;
             }
             else
             {
-                rec.sequence() = rec.sequence()
-                               | seqan3::views::slice(0, rec.sequence().size() - 1)
-                               | seqan3::views::to<seqan3::dna5_vector>;
+               rec.sequence() = rec.sequence()
+                              | seqan3::views::slice(2, rec.sequence().size())
+                              | seqan3::views::to<seqan3::dna5_vector>;
+               rec.reference_position().value() = rec.reference_position().value() + 2;
             }
+        } else if constexpr (rrbs && (!single_end))
+        {
+            rec.sequence() = rec.sequence()
+                           | seqan3::views::slice(2, rec.sequence().size() - 2)
+                           | seqan3::views::to<seqan3::dna5_vector>;
+            rec.reference_position().value() = rec.reference_position().value() + 2;
         }
 
         if constexpr (single_end)

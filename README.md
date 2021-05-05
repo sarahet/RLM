@@ -1,4 +1,4 @@
-# RLM 
+# RLM
 Read level DNA methylation analysis of bisulfite converted sequencing data
 
 ![](https://github.com/sarahet/RLM/actions/workflows/ci.yml/badge.svg)
@@ -74,7 +74,9 @@ All options available in RLM:
 -q, --mapping_quality     Minimum mapping quality required to consider a read. Default: 30.
                           Value must be in range [0,255].
 
--d, --rrbs                Set if BAM file contains reads from an RRBS experiment.
+-d, --rrbs                If BAM file contains reads from an RRBS experiment and reads should
+                          be trimmed in order to avoid bias of artifical CpGs. Do NOT use if
+                          you already accounted for this problem during trimming.
 
 -o, --output_single_read  Output file with DNA methylation information for every single read
                           with at least 3 CpGs. Default: "output_single_read_info.bed". Write
