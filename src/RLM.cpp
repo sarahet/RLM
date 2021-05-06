@@ -267,9 +267,10 @@ int real_main(cmd_arguments & args)
         }
 
         // If RRBS mode, omit potentially artificial bases (should not be applied if already trimmed/accounted for)
-        if constexpr (rrbs && single_end)
+        if constexpr (rrbs)
         {
-            if (rec_type == read_type::FWD)
+            if ((rec_type == read_type::FWD && !static_cast<bool>(rec.flag() & seqan3::sam_flag::on_reverse_strand)) ||
+                (rec_type == read_type::REV && static_cast<bool>(rec.flag() & seqan3::sam_flag::on_reverse_strand)))
             {
                 rec.sequence() = rec.sequence()
                                | seqan3::views::slice(0, rec.sequence().size() - 2)
@@ -277,19 +278,13 @@ int real_main(cmd_arguments & args)
             }
             else
             {
-               rec.sequence() = rec.sequence()
-                              | seqan3::views::slice(2, rec.sequence().size())
-                              | seqan3::views::to<seqan3::dna5_vector>;
-               rec.reference_position().value() = rec.reference_position().value() + 2;
+                rec.sequence() = rec.sequence()
+                               | seqan3::views::slice(2, rec.sequence().size())
+                               | seqan3::views::to<seqan3::dna5_vector>;
+                rec.reference_position().value() = rec.reference_position().value() + 2;
             }
-        } else if constexpr (rrbs && (!single_end))
-        {
-            rec.sequence() = rec.sequence()
-                           | seqan3::views::slice(2, rec.sequence().size() - 2)
-                           | seqan3::views::to<seqan3::dna5_vector>;
-            rec.reference_position().value() = rec.reference_position().value() + 2;
         }
-
+        
         if constexpr (single_end)
         {
             process_bam_record(output_stream,
