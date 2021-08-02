@@ -7,6 +7,8 @@ Read level DNA methylation analysis of bisulfite converted sequencing data
 * GCC   (minimum required version: 7)
 * CMake (minimum required version: 3.8)
 
+**Attention:** Due to the requirements of the SeqAn3 library, only the latest minor GCC releases are supported for each major version. 
+
 ## Installation
 To install RLM from github, run:
 ```
