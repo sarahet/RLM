@@ -166,3 +166,34 @@ TEST_F(RLM, compare_bismark_segemehl)
         }
     }
 }
+
+TEST_F(RLM, compare_segemehl_gem)
+{
+    cli_test_result result_gem = execute_app("RLM", "-b", data("test_bsmap.bam"), "-r", data("test_ref.fa"), "-m", "SE", "-s", "single_read", "-a", "bsmap", "-o", "output_bsmap.bed");
+    cli_test_result result_segemehl = execute_app("RLM", "-b", data("test_segemehl.bam"), "-r", data("test_ref.fa"), "-m", "SE", "-s", "single_read", "-a", "segemehl", "-o", "output_segemehl.bed");
+
+    std::ifstream output_gem ("output_gem.bed");
+    std::ifstream output_segemehl ("output_segemehl.bed");
+
+    std::string line;
+
+    std::vector<std::string> output_vec_gem;
+    std::vector<std::string> output_vec_segemehl;
+
+    while (std::getline(output_gem, line))
+    {
+        output_vec_gem.push_back(line);
+    }
+    output_gem.close();
+
+    while (std::getline(output_segemehl, line))
+    {
+        output_vec_segemehl.push_back(line);
+    }
+    output_segemehl.close();
+
+    for (size_t i = 0; i < output_vec_gem.size(); i++)
+    {
+        EXPECT_EQ(output_vec_gem[i], output_vec_segemehl[i]);
+    }
+}

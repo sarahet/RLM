@@ -72,7 +72,7 @@ void initialise_argument_parser(seqan3::argument_parser & parser, cmd_arguments 
     parser.add_option(args.aligner, 'a', "aligner",
                       "The alignment tool used to create the BAM file.",
                       seqan3::option_spec::standard,
-                      seqan3::value_list_validator{"bsmap", "bismark", "segemehl"});
+                      seqan3::value_list_validator{"bsmap", "bismark", "segemehl", "gem"});
 
     parser.add_option(args.coverage_filter, 'c', "coverage",
                       "Minimum number of reads required to report a CpG or kmer for 'pdr' and 'entropy' mode.",

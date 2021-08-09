@@ -127,20 +127,13 @@ int arg_conv3(cmd_arguments & args)
 {
     align_type type = _aligner_name_to_enum(args.aligner);
 
-    try
+    switch (type)
     {
-        switch (type)
-        {
-            case align_type::BSMAP:     return real_main<calc_pdr_score, calc_entropy_score, rrbs, single_end, align_type::BSMAP>(args);
-            case align_type::BISMARK:   return real_main<calc_pdr_score, calc_entropy_score, rrbs, single_end, align_type::BISMARK>(args);
-            case align_type::SEGEMEHL:  return real_main<calc_pdr_score, calc_entropy_score, rrbs, single_end, align_type::SEGEMEHL>(args);
-            default: throw "Undefined alignment tool requested.";
-        }
-    }
-    catch (const char * e)
-    {
-        std::cerr << "Error: " << e << std::endl;
-        return -1;
+        case align_type::BSMAP:     return real_main<calc_pdr_score, calc_entropy_score, rrbs, single_end, align_type::BSMAP>(args);
+        case align_type::BISMARK:   return real_main<calc_pdr_score, calc_entropy_score, rrbs, single_end, align_type::BISMARK>(args);
+        case align_type::SEGEMEHL:  return real_main<calc_pdr_score, calc_entropy_score, rrbs, single_end, align_type::SEGEMEHL>(args);
+        case align_type::GEM:       return real_main<calc_pdr_score, calc_entropy_score, rrbs, single_end, align_type::GEM>(args);
+        default: throw "Undefined alignment tool requested.";
     }
 }
 
@@ -201,6 +194,9 @@ int real_main(cmd_arguments & args)
     using record_t = std::ranges::range_value_t<decltype(mapping_file)>;
     std::map<std::string, record_t> records;
 
+    // Store set with mates that have indels to immediately process and not store them later
+    std::set<std::string> mates_with_indels;
+
     // Map to store CpGs
     using num_reads_t = uint32_t;
     using num_discordant_reads_t = uint32_t;
@@ -221,7 +217,6 @@ int real_main(cmd_arguments & args)
 
     std::cout << "Starting BAM file processing" << std::endl;
 
-    // for (auto & rec : mapping_file | mapq_filter)
     for (auto & rec : mapping_file)
     {
         // Check if read is properly mapped and paired (if PE mode), not vendor-failed, not supplementary
@@ -235,35 +230,141 @@ int real_main(cmd_arguments & args)
             rec.mapping_quality() < args.mapq_filter)
             continue;
 
+        // Set tag depending on aligner
+        read_type rec_type;
+
         // Check if alignment contains indels: If yes, skip record.
         using seqan3::get;
         bool indel = false;
+        bool soft_clip = false;
         for (auto c : rec.cigar_sequence())
         {
-            if (get<seqan3::cigar::operation>(c) != 'M'_cigar_operation)
+            if (get<seqan3::cigar::operation>(c) != 'M'_cigar_operation &&
+                get<seqan3::cigar::operation>(c) != 'H'_cigar_operation)
             {
-                indel = true;
-                break;
+                if (get<seqan3::cigar::operation>(c) == 'S'_cigar_operation)
+                {
+                    soft_clip = true;
+                }
+                else
+                {
+                    indel = true;
+                    break;
+                }
             }
         }
 
         if (indel)
-            continue;
+        {
+            if constexpr(!single_end)
+            {
+                if (records.find(rec.id()) != records.end())
+                {
+                    process_bam_record(output_stream,
+                                       rec_type,
+                                       records.at(rec.id()).reference_id().value(),
+                                       records.at(rec.id()).reference_position().value(),
+                                       records.at(rec.id()).sequence(),
+                                       records.at(rec.id()).id(),
+                                       mapping_file.header().ref_ids(),
+                                       genome_seqs,
+                                       all_CpGs,
+                                       all_kmers,
+                                       score_tag{});
+                    records.erase(rec.id());
+                }
 
-        // Set tag depending on aligner
-        read_type rec_type;
+                else if (mates_with_indels.find(rec.id()) != mates_with_indels.end())
+                    mates_with_indels.erase(rec.id());
+                else
+                    mates_with_indels.insert(rec.id());
+            }
+            continue;
+        }
+
+        // Check if alignment was soft clipped: If yes adapt read sequence
+        if (soft_clip)
+        {
+            if (get<seqan3::cigar::operation>(rec.cigar_sequence()[0]) == 'S'_cigar_operation)
+            {
+                // If 5p soft clipping
+                rec.sequence() = rec.sequence()
+                               | seqan3::views::slice(get<uint32_t>(rec.cigar_sequence()[0]), rec.sequence().size())
+                               | seqan3::views::to<seqan3::dna5_vector>;
+            }
+            else if (get<seqan3::cigar::operation>(rec.cigar_sequence()[0]) == 'H'_cigar_operation &&
+                     get<seqan3::cigar::operation>(rec.cigar_sequence()[1]) == 'S'_cigar_operation)
+            {
+                // If 5p soft clipping after hard clipping
+                rec.sequence() = rec.sequence()
+                               | seqan3::views::slice(get<uint32_t>(rec.cigar_sequence()[1]), rec.sequence().size())
+                               | seqan3::views::to<seqan3::dna5_vector>;
+            }
+
+            if (get<seqan3::cigar::operation>(rec.cigar_sequence()[rec.cigar_sequence().size() - 1]) == 'S'_cigar_operation)
+            {
+                // If 3p soft clipping
+                rec.sequence() = rec.sequence()
+                               | seqan3::views::slice(0, rec.sequence().size() - get<uint32_t>(rec.cigar_sequence()[rec.cigar_sequence().size() - 1]))
+                               | seqan3::views::to<seqan3::dna5_vector>;
+            }
+            else if (get<seqan3::cigar::operation>(rec.cigar_sequence()[rec.cigar_sequence().size() - 1]) == 'H'_cigar_operation &&
+                     get<seqan3::cigar::operation>(rec.cigar_sequence()[rec.cigar_sequence().size() - 2]) == 'S'_cigar_operation)
+            {
+                // If 3p soft clipping before hard clipping
+                rec.sequence() = rec.sequence()
+                               | seqan3::views::slice(0, rec.sequence().size() - get<uint32_t>(rec.cigar_sequence()[rec.cigar_sequence().size() - 2]))
+                               | seqan3::views::to<seqan3::dna5_vector>;
+            }
+        }
 
         if constexpr (aligner == align_type::BSMAP)
         {
             rec_type = _read_tag_bsmap_to_enum(rec.tags().get<"ZS"_tag>());
         }
-        else if (aligner == align_type::BISMARK)
+        else if constexpr (aligner == align_type::BISMARK)
         {
             rec_type = _read_tag_bismark_to_enum(rec.tags().get<"XG"_tag>());
         }
         else
         {
-            rec_type = _read_tag_segemehl_to_enum(rec.tags().get<"XB"_tag>());
+            // SEGEMEHL declares XB tag as string while GEM declares XB tag as char
+            // Therefore no overload for seqan3::sam_tag_type is possible and need to iterate through
+            // std::variant types
+            try
+            {
+                auto current_tag = rec.tags()["XB"_tag];
+
+                std::string xb_tag;
+
+                std::visit([&xb_tag] (auto && arg)
+                {
+                    using T = std::remove_cvref_t<decltype(arg)>;
+
+                    if constexpr(std::is_same_v<T, char>)
+                    {
+                        xb_tag = std::string(1, arg);
+                    }
+                    else if constexpr (std::is_same_v<T, std::string>)
+                    {
+                        xb_tag = arg;
+                    }
+                    else
+                    {
+                        throw "Invalid type for XB tag. Must be either string (segemehl) or char (GEM).";
+                    }
+                }, current_tag);
+
+                if constexpr (aligner == align_type::SEGEMEHL)
+                    rec_type = _read_tag_segemehl_to_enum(xb_tag);
+                else
+                    rec_type = _read_tag_gem_to_enum(xb_tag);
+            }
+            catch (const char * e)
+            {
+                std::cerr << "Error: " << e << std::endl;
+                return -1;
+            }
         }
 
         // If RRBS mode, omit potentially artificial bases (should not be applied if already trimmed/accounted for)
@@ -284,7 +385,7 @@ int real_main(cmd_arguments & args)
                 rec.reference_position().value() = rec.reference_position().value() + 2;
             }
         }
-        
+
         if constexpr (single_end)
         {
             process_bam_record(output_stream,
@@ -301,6 +402,40 @@ int real_main(cmd_arguments & args)
         }
         else
         {
+            if (static_cast<bool>(rec.flag() & seqan3::sam_flag::mate_unmapped))
+            {
+                // If mate is unmapped just process read immediately
+                process_bam_record(output_stream,
+                                   rec_type,
+                                   rec.reference_id().value(),
+                                   rec.reference_position().value(),
+                                   rec.sequence(),
+                                   rec.id(),
+                                   mapping_file.header().ref_ids(),
+                                   genome_seqs,
+                                   all_CpGs,
+                                   all_kmers,
+                                   score_tag{});
+                continue;
+            }
+            else if (mates_with_indels.find(rec.id()) != mates_with_indels.end())
+            {
+                // If mate had indel just process read immediately
+                process_bam_record(output_stream,
+                                   rec_type,
+                                   rec.reference_id().value(),
+                                   rec.reference_position().value(),
+                                   rec.sequence(),
+                                   rec.id(),
+                                   mapping_file.header().ref_ids(),
+                                   genome_seqs,
+                                   all_CpGs,
+                                   all_kmers,
+                                   score_tag{});
+                mates_with_indels.erase(rec.id());
+                continue;
+            }
+
             // Check if mate has already been read
             if (!records.insert(std::make_pair(rec.id(), rec)).second)
             {

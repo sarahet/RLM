@@ -22,6 +22,22 @@ declare_datasource (FILE control_overlap_reads.bed
                     URL ${CMAKE_SOURCE_DIR}/test/data/control_overlap_reads.bed
                     URL_HASH SHA256=e13dbeb88efde592b44fb5657c4e7bbb63111fce78789900b2822307ec1fde4b)
 
+declare_datasource (FILE test_clipped_reads.bam
+                    URL ${CMAKE_SOURCE_DIR}/test/data/test_clipped_reads.bam
+                    URL_HASH SHA256=0d4b3d695555bec54d35cea011fa977e4e678769501782375e960fd9344c5caa)
+
+declare_datasource (FILE control_clipped_reads.bed
+                    URL ${CMAKE_SOURCE_DIR}/test/data/control_clipped_reads.bed
+                    URL_HASH SHA256=b049b9de05bfe92eb6473314bc7fa2b471bc09c1876fe47d68045997d9dadfa5)
+
+declare_datasource (FILE test_invalid_mate.bam
+                    URL ${CMAKE_SOURCE_DIR}/test/data/test_invalid_mate.bam
+                    URL_HASH SHA256=448032cfede9644f66993a1be4f0de7760b33a521a44b63dab8cd28c58758632)
+
+declare_datasource (FILE control_invalid_mate.bed
+                    URL ${CMAKE_SOURCE_DIR}/test/data/control_invalid_mate.bed
+                    URL_HASH SHA256=4d3e2a922a0982bb722973d49802f462377bf41e14962b5b7fccb6d09dfb69ee)
+
 declare_datasource (FILE test_ref.fa
                     URL ${CMAKE_SOURCE_DIR}/test/data/test_ref.fa
                     URL_HASH SHA256=0d0e4d6e8e7a429e0517e63655fb570ecab40b7c088d824f08c1617c00161fda)
@@ -53,3 +69,7 @@ declare_datasource (FILE test_segemehl.bam
 declare_datasource (FILE test_bismark.bam
                     URL ${CMAKE_SOURCE_DIR}/test/data/test_bismark.bam
                     URL_HASH SHA256=ec426d6d992d054b5073c5d3ea7bb48cb1c702b64d73d767a02a8bd23edc45c3)
+
+declare_datasource (FILE test_gem.bam
+                    URL ${CMAKE_SOURCE_DIR}/test/data/test_gem.bam
+                    URL_HASH SHA256=41f1fcf96096db12361962c67e6caa1f998ef16efe6f110da92d700a613f7e4e)

@@ -56,7 +56,8 @@ enum class align_type : uint8_t
 {
     BSMAP,
     BISMARK,
-    SEGEMEHL
+    SEGEMEHL,
+    GEM
 };
 
 inline align_type
@@ -68,6 +69,8 @@ _aligner_name_to_enum(std::string const & str)
         return align_type::BISMARK;
     else if (str == "segemehl")
         return align_type::SEGEMEHL;
+    else if (str == "gem")
+        return align_type::GEM;
 
     return align_type::BSMAP;
 }
@@ -153,6 +156,18 @@ _read_tag_segemehl_to_enum(std::string const & str)
     return read_type::FWD;
 }
 
+// Get original strand from GEM alignment
+inline read_type
+_read_tag_gem_to_enum(std::string const & str)
+{
+    if (str == "C")
+        return read_type::FWD;
+    else if (str == "G")
+        return read_type::REV;
+
+    return read_type::FWD;
+}
+
 // Tag used to separate overloads for different score calculations
 template <bool calc_pdr_score, bool calc_entropy_score>
 struct score_tag{};
@@ -167,13 +182,6 @@ struct seqan3::sam_tag_type<"ZS"_tag>
 // Overload for XG tag
 template <>
 struct seqan3::sam_tag_type<"XG"_tag>
-{
-    using type = std::string;
-};
-
-// Overload for XB tag
-template <>
-struct seqan3::sam_tag_type<"XB"_tag>
 {
     using type = std::string;
 };
