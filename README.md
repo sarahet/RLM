@@ -70,7 +70,7 @@ All options available in RLM:
                           [single_read,entropy,pdr,all].
 
 -a, --aligner             The alignment tool used to create the BAM file. Default: bsmap. Value
-                          must be one of [bsmap,bismark,segemehl].
+                          must be one of [bsmap,bismark,segemehl,gem].
 
 -c, --coverage            Minimum number of reads required to report a CpG or kmer for 'pdr'
                           and 'entropy' mode. Default: 10. Value must be in range [1,1000].
