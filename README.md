@@ -98,3 +98,30 @@ All options available in RLM:
                           permissions must be granted.
                           Valid file extensions are: [bed, tsv, txt].
 ```
+
+## Visualization with R
+
+RLM is a standalone C++ application. However, to provide summary statistics and figures as well as ideas for post-processing, we provide an [R Markdown script](https://github.com/sarahet/RLM/blob/main/post_processing/summarize_read_level_stats.Rmd) in the ```post_processsing``` folder. In order to use the script, R needs to be installed including the following packages:
+
+* ```knitr```
+* ```data.table```
+* ```GenomicRanges```
+* ```RColorBrewer```
+* ```vioplot```
+* ```ggplot2```
+* ```ggpubr```
+
+The script can be called the following way:
+
+```
+Rscript -e "rmarkdown::render('summarize_read_level_stats.Rmd', 
+params=list(
+single_read_input_file = '/path/to/output_single_read_info.bed',
+pdr_input_file = '/path/to/output_pdr.bed',
+entropy_input_file = '/path/to/output_entropy.bed',
+sample_name = 'my_sample',
+feature_input_file = '/path/to/features.bed'), 
+output_file = 'my_output.pdf')"
+```
+
+The parameter ```feature_input_file``` is optional and if not provided, no feature-wise figures will be reported. If provided, it should be a bedgraph file of the following format: ```<chr> <start> <end> <feature_name>``` where ```<feature_name>``` should be the name of the feature type the region belongs to. For more information and an example run with figures please visit our [Wiki](https://github.com/sarahet/RLM/wiki/Post-processing-and-use-cases).
