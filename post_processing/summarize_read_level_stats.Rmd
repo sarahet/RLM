@@ -1,0 +1,221 @@
+---
+title: RLM output summary
+output: pdf_document
+params:
+  single_read_input_file: ""
+  pdr_input_file: ""
+  entropy_input_file: ""
+  sample_name: ""
+  feature_input_file: ""
+---
+
+<!--
+// ==========================================================================
+//                                  RLM
+// ==========================================================================
+// Copyright (c) 2021, Sara Hetzel <hetzel @ molgen.mpg.de>
+// Copyright (c) 2021, Max-Planck-Institut für Molekulare Genetik
+// All rights reserved.
+//
+// This file is part of RLM.
+//
+// RLM is Free Software: you can redistribute it and/or modify it
+// under the terms found in the LICENSE[.md|.rst] file distributed
+// together with this file.
+//
+// RLM is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+//
+// ==========================================================================
+// Summarize RLM results
+// ==========================================================================
+-->
+
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+library(knitr)
+library(data.table)
+library(GenomicRanges)
+library(RColorBrewer)
+library(vioplot)
+library(ggplot2)
+library(ggpubr)
+```
+
+# Single read summary statistics
+
+```{r echo=FALSE, warning = FALSE}
+
+## Parse arguments
+
+if (params$single_read_input_file == "") stop("ERROR: Please provide single read output file.")
+if (params$pdr_input_file == "") stop("ERROR: Please provide PDR output file.")
+if (params$entropy_input_file == "") stop("ERROR: Please provide entropy output file.")
+if (params$sample_name == "") stop("ERROR: Please provide sample name.")
+
+## Load data
+single_read_input <- data.frame(fread(params$single_read_input_file, header = TRUE), stringsAsFactors = FALSE)
+colnames(single_read_input)[1] <- "chr"
+
+pdr_input <- data.frame(fread(params$pdr_input_file, header = TRUE), stringsAsFactors = FALSE)
+colnames(pdr_input)[1] <- "chr"
+
+entropy_input <- data.frame(fread(params$entropy_input_file, header = TRUE), stringsAsFactors = FALSE)
+colnames(entropy_input)[1] <- "chr"
+```
+Number of reads considered for the analysis: `r  nrow(single_read_input)`.
+
+Number of discordant reads considered for the analysis: `r  sum(single_read_input$discordance_score)`.
+
+```{r echo=FALSE, warning = FALSE, crop = NULL, fig.align = "center", fig.width = 3, fig.height = 2.6}
+rownames_tables <- names(summary(single_read_input$n_CpGs))
+
+df_stats_reads <- data.frame("Summary CpGs per read" = round(as.numeric(summary(single_read_input$n_CpGs)), 2),
+                             "Summary methylated CpGs per read" = round(as.numeric(summary(single_read_input$n_CpGs_methyl)), 2),
+                             "Summary transitions per read" = round(as.numeric(summary(single_read_input$transitions)), 2),
+                             "Summary methylation per read" = round(as.numeric(summary(single_read_input$mean_methylation)), 2),
+                             check.names = FALSE)
+rownames(df_stats_reads) <- rownames_tables
+kable(df_stats_reads)
+
+ggplot(data = single_read_input, aes(x = n_CpGs)) + geom_histogram(binwidth = 1) + theme_classic() + xlab("Number of CpGs per read") + ylab("Count") + theme(axis.text=element_text(size=10), axis.title=element_text(size=10))
+```
+
+# PDR and RTS summary statistics
+
+```{r echo=FALSE, warning = FALSE, crop = NULL, fig.width = 3, fig.height = 2.6, fig.align = "center"}
+df_stats_pdr <- data.frame("Summary coverage reported CpGs" = round(as.numeric(summary(pdr_input$coverage)), 2),
+                           "Summary CpG methylation" = round(as.numeric(summary(pdr_input$mean_methylation)), 2),
+                           "Summary PDR" = round(as.numeric(summary(pdr_input$PDR)), 2),
+                           "Summary RTS" = round(as.numeric(summary(pdr_input$RTS)), 2),
+                           check.names = FALSE)
+rownames(df_stats_pdr) <- rownames_tables
+kable(df_stats_pdr)
+
+ggplot(data = pdr_input, aes(x = coverage)) + geom_histogram(bins = 50) + theme_classic() + xlab("Coverage per CpG") + ylab("Count") + scale_x_continuous(trans='log10') + theme(axis.text=element_text(size=10), axis.title=element_text(size=10))
+```
+
+## Comparison of CpG methylation and PDR/RTS
+
+The following plots summarize coverage and methylation per CpG, percent of discordant reads (PDR) and average read transition score (RTS) for all CpGs reported. Some genomic regions artificially tend to get high amounts of reads during mapping which is why removing outlier CpGs with abnormally high coverage could be considered. Generally, PDR is a very broad measure and will usually be higher than the RTS because a discordant read can have an arbitrary amount of transitions as long as there is at least one.
+
+
+```{r echo=FALSE, warning = FALSE, crop = NULL, fig.width = 6, fig.height = 3, message = FALSE, results='hide', fig.keep='all', fig.align = "center"}
+layout(matrix(1:3, ncol = 3, byrow = TRUE))
+vioplot(pdr_input$mean_methylation, xlab = "", ylab = "CpG methylation", names = params$sample_name, ylim = c(0,1))
+vioplot(pdr_input$PDR, xlab = "", ylab = "PDR", names = params$sample_name, ylim = c(0,1))
+vioplot(pdr_input$RTS, xlab = "", ylab = "RTS", names = params$sample_name, ylim = c(0,1))
+
+cat("\n")
+```
+Regions with low and high DNA methylation in the genome will tend to have lower read level dynamics (i.e. low PDR or RTS) while intermediately methylated regions tend to have higher heterogeneity.
+
+```{r echo=FALSE, warning = FALSE, crop = NULL, fig.width = 7, fig.height = 4, message = FALSE, results='hide', fig.keep='all', fig.align = "center"}
+layout(matrix(1:2, ncol = 2))
+smoothScatter(pdr_input[,"mean_methylation"], pdr_input[,"PDR"], xlab = "CpG methylation", ylab = "PDR", colramp = colorRampPalette(rev(brewer.pal(n = 11, name = "RdYlBu"))),nrpoints = 0, xlim = c(0,1), ylim = c(0,1))
+
+smoothScatter(pdr_input[,"mean_methylation"], pdr_input[,"RTS"], xlab = "CpG methylation", ylab = "RTS", colramp = colorRampPalette(rev(brewer.pal(n = 11, name = "RdYlBu"))),nrpoints = 0, xlim = c(0,1), ylim = c(0,1))
+```
+
+# Entropy and epipolymorphism summary statistics
+
+```{r echo=FALSE, warning = FALSE, crop = NULL, fig.width = 3, fig.height = 2.6, fig.align = "center"}
+df_stats_entropy <- data.frame("Summary coverage reported 4mers" = round(as.numeric(summary(entropy_input$coverage)), 2),
+                               "Summary 4mer methylation" = round(as.numeric(summary(entropy_input$mean_methylation)), 2),
+                               "Summary entropy" = round(as.numeric(summary(entropy_input$entropy)), 2),
+                               "Summary epipolymorphism" = round(as.numeric(summary(entropy_input$epipolymorphism)), 2),
+                               check.names = FALSE)
+rownames(df_stats_entropy) <- rownames_tables
+kable(df_stats_entropy)
+
+ggplot(data = entropy_input, aes(x = coverage)) + geom_histogram(bins = 50) + theme_classic() + xlab("Coverage per 4mer") + ylab("Count") + scale_x_continuous(trans='log10') + theme(axis.text=element_text(size=10), axis.title=element_text(size=10))
+```
+
+## Comparison of 4mer methylation and entropy/epipolymorphism
+
+The following plots summarize coverage and methylation per 4mer, percent of discordant reads (PDR) and read transition score (RTS) for all 4mers reported. Some genomic regions artificially tend to get high amounts of reads during mapping which is why removing outlier CpGs with abnormally high coverage could be considered. The methylation per 4mer is calculated as the average methylation across all CpGs included. This average methylation will usually be lower compared to the CpG methylation reported in the previous section. For entropy and epipolymorphism, 4 CpGs in a row (4mer) are required to be present on a single read in contrast to the minimum of 3 CpGs that is required for PDR/RTS analysis. This biases the analysis towards CpG-rich regions such as CpG islands which tend to be unmethylated.
+
+```{r echo=FALSE, warning = FALSE, crop = NULL, fig.width = 6, fig.height = 3, message = FALSE, results='hide', fig.keep='all', fig.align = "center"}
+layout(matrix(1:3, ncol = 3, byrow = TRUE))
+vioplot(entropy_input$mean_methylation, xlab = "", ylab = "Mean methylation per kmer", names = params$sample_name)
+vioplot(entropy_input$entropy, xlab = "", ylab = "Entropy", names = params$sample_name)
+vioplot(entropy_input$epipolymorphism, xlab = "", ylab = "Epipolymorphism", names = params$sample_name)
+
+cat("\n")
+```
+
+Regions with low and high DNA methylation in the genome will tend to have lower read level dynamics (i.e. low entropy or epipolymorphism) while intermediately methylated regions tend to have higher heterogeneity.
+
+```{r echo=FALSE, warning = FALSE, crop = NULL, fig.width = 7, fig.height = 4, fig.align = "center"}
+layout(matrix(1:2, ncol = 2))
+smoothScatter(entropy_input[,"mean_methylation"], entropy_input[,"entropy"], xlab = "4mer methylation", ylab = "Entropy", colramp = colorRampPalette(rev(brewer.pal(n = 11, name = "RdYlBu"))), nrpoints = 0, xlim = c(0,1), ylim = c(0,1))
+
+smoothScatter(entropy_input[,"mean_methylation"], entropy_input[,"epipolymorphism"], xlab = "4mer methylation", ylab = "Epipolymorphism", colramp = colorRampPalette(rev(brewer.pal(n = 11, name = "RdYlBu"))), nrpoints = 0, xlim = c(0,1), ylim = c(0,1))
+```
+
+`r if(params$feature_input_file != ""){"# Feature-wise statistics"}`
+
+`r if(params$feature_input_file != ""){"In the following, the distribution of methylation and read level scores is summarized per supplied feature type."}`
+
+`r if(params$feature_input_file != ""){"## PDR and RTS"}`
+
+```{r echo=FALSE, warning = FALSE, crop = NULL, fig.width = 7, fig.height = 2.8, fig.align = "center"}
+
+if (params$feature_input_file != "")
+{
+    ## Load feature file
+    feature_input <- data.frame(fread(params$feature_input_file, header = TRUE), stringsAsFactors = FALSE)
+    colnames(feature_input) <- c("chr", "start", "end", "feature")
+
+    if (ncol(feature_input) != 4) stop("ERROR: Please provide a feature file with four columns <chr> <start> <end> <name> (0-based coordinates).")
+
+    ## Transform to GRanges object
+    feature_input_range <- makeGRangesFromDataFrame(feature_input)
+    start(feature_input_range) <- start(feature_input_range) + 1
+
+    pdr_input_range <- makeGRangesFromDataFrame(pdr_input)
+    start(pdr_input_range) <- start(pdr_input_range) + 1
+
+    entropy_input_range <- makeGRangesFromDataFrame(entropy_input)
+    start(entropy_input_range) <- start(entropy_input_range) + 1
+
+    ## Overlap scores with features
+    overlap_pdr_features <- findOverlaps(pdr_input_range, feature_input_range)
+    df_overlap_pdr_features <- data.frame(mean_methylation = pdr_input[queryHits(overlap_pdr_features),"mean_methylation"],
+                                          PDR = pdr_input[queryHits(overlap_pdr_features),"PDR"],
+                                          RTS = pdr_input[queryHits(overlap_pdr_features),"RTS"],
+                                          feature = feature_input[subjectHits(overlap_pdr_features),"feature"])
+
+    overlap_entropy_features <- findOverlaps(entropy_input_range, feature_input_range)
+    df_overlap_entropy_features <- data.frame(mean_methylation = entropy_input[queryHits(overlap_entropy_features),"mean_methylation"],
+                                              entropy = entropy_input[queryHits(overlap_entropy_features),"entropy"],
+                                              epipolymorphism = entropy_input[queryHits(overlap_entropy_features),"epipolymorphism"],
+                                              feature = feature_input[subjectHits(overlap_entropy_features),"feature"])
+
+
+    colors_features <- colorRampPalette(brewer.pal(8, "Dark2"))(length(unique(feature_input$feature)))
+    names(colors_features) <- sort(unique(feature_input$feature))
+
+    p1 <- ggplot(data = df_overlap_pdr_features, aes(x = mean_methylation, color = feature)) + geom_line(stat="density") + theme_classic() + xlab("CpG methylation") + ylab("Density") + theme(axis.text=element_text(size=10), axis.title=element_text(size=10)) + scale_color_manual(values = colors_features)
+    p2 <- ggplot(data = df_overlap_pdr_features, aes(x = PDR, color = feature)) + geom_line(stat="density") + theme_classic() + xlab("PDR") + ylab("Density") + theme(axis.text=element_text(size=10), axis.title=element_text(size=10)) + scale_color_manual(values = colors_features)
+    p3 <- ggplot(data = df_overlap_pdr_features, aes(x = RTS, color = feature)) + geom_line(stat="density") + theme_classic() + xlab("RTS") + ylab("Density") + theme(axis.text=element_text(size=10), axis.title=element_text(size=10)) + scale_color_manual(values = colors_features)
+
+    plot(ggarrange(p1, p2, p3, common.legend = TRUE, legend = "bottom", ncol = 3, nrow = 1))
+
+    cat("\n")
+}
+```
+
+`r if(params$feature_input_file != ""){"## Entropy and epipolymorphism"}`
+
+```{r echo=FALSE, warning = FALSE, crop = NULL, fig.width = 7, fig.height = 2.8, fig.align = "center"}
+
+if (params$feature_input_file != "")
+{
+    p4 <- ggplot(data = df_overlap_entropy_features, aes(x = mean_methylation, color = feature)) + geom_line(stat="density") + theme_classic() + xlab("4mer methylation") + ylab("Density") + theme(axis.text=element_text(size=10), axis.title=element_text(size=10)) + scale_color_manual(values = colors_features)
+    p5 <- ggplot(data = df_overlap_entropy_features, aes(x = entropy, color = feature)) + geom_line(stat="density") + theme_classic() + xlab("Entropy") + ylab("Density") + theme(axis.text=element_text(size=10), axis.title=element_text(size=10)) + scale_color_manual(values = colors_features)
+    p6 <- ggplot(data = df_overlap_entropy_features, aes(x = epipolymorphism, color = feature)) + geom_line(stat="density") + theme_classic() + xlab("Epipolymorphism") + ylab("Density") + theme(axis.text=element_text(size=10), axis.title=element_text(size=10)) + scale_color_manual(values = colors_features)
+
+    plot(ggarrange(p4, p5, p6, common.legend = TRUE, legend = "bottom", ncol = 3, nrow = 1))
+}
+```
