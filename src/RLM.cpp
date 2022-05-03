@@ -444,7 +444,7 @@ int real_main(cmd_arguments & args)
                                        rec.sequence().size() + rec.reference_position().value()) -
                               std::max(records.at(rec.id()).reference_position().value(), rec.reference_position().value());
 
-                if (overlap >= 0)
+                if (overlap >= 0 & (rec.reference_id().value() == records.at(rec.id()).reference_id().value()))
                 {
                     // First check if one read is included in the other - just process the longer one in this case
                     if (overlap == records.at(rec.id()).sequence().size())
