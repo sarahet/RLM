@@ -169,7 +169,7 @@ TEST_F(RLM, compare_bismark_segemehl)
 
 TEST_F(RLM, compare_segemehl_gem)
 {
-    cli_test_result result_gem = execute_app("RLM", "-b", data("test_bsmap.bam"), "-r", data("test_ref.fa"), "-m", "SE", "-s", "single_read", "-a", "bsmap", "-o", "output_bsmap.bed");
+    cli_test_result result_gem = execute_app("RLM", "-b", data("test_gem.bam"), "-r", data("test_ref.fa"), "-m", "SE", "-s", "single_read", "-a", "gem", "-o", "output_gem.bed");
     cli_test_result result_segemehl = execute_app("RLM", "-b", data("test_segemehl.bam"), "-r", data("test_ref.fa"), "-m", "SE", "-s", "single_read", "-a", "segemehl", "-o", "output_segemehl.bed");
 
     std::ifstream output_gem ("output_gem.bed");
