@@ -8,6 +8,7 @@ For detailed documentation and usage examples, please visit the [Wiki](https://g
 ## Dependencies
 * GCC   (minimum required version: 7)
 * CMake (minimum required version: 3.8)
+* zlib (minimum required version: 1.2)
 
 **Attention:** Due to the requirements of the SeqAn3 library, only the latest minor GCC releases are supported for each major version. 
 
