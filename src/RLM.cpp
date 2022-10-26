@@ -150,6 +150,8 @@ int real_main(cmd_arguments & args)
     std::cout << "Reading the reference genome" << std::endl;
 
     seqan3::sequence_file_input reference_file{args.fasta_file};
+    reference_file.options.truncate_ids = true;
+
     std::vector<std::string> genome_seqs_ids{};
     std::vector<seqan3::dna5_vector> genome_seqs{};
 
@@ -181,7 +183,7 @@ int real_main(cmd_arguments & args)
         for (size_t i = 0; i < mapping_file.header().ref_ids().size(); i++)
         {
             if (mapping_file.header().ref_ids()[i] != genome_seqs_ids[i])
-                throw "Different order of sequences in references and BAM file.";
+                throw "Different reference sequence order or different reference sequences in fasta and BAM file.";
         }
     }
     catch (const char * e)
