@@ -1,8 +1,8 @@
 // ==========================================================================
 //                                  RLM
 // ==========================================================================
-// Copyright (c) 2021, Sara Hetzel <hetzel @ molgen.mpg.de>
-// Copyright (c) 2021, Max-Planck-Institut für Molekulare Genetik
+// Copyright (c) 2021-2023, Sara Hetzel <hetzel @ molgen.mpg.de>
+// Copyright (c) 2021-2023, Max-Planck-Institut für Molekulare Genetik
 // All rights reserved.
 //
 // This file is part of RLM.
