@@ -1,0 +1,112 @@
+name: RLM CI on Linux
+
+on:
+  push:
+  pull_request:
+
+env:
+  TZ: Europe/Berlin
+
+defaults:
+  run:
+    shell: bash -ex {0}
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: "gcc12"
+            install: "g++-12"
+            cxx: "g++-12"
+            cc: "gcc-12"
+            build_type: Release
+
+          - name: "gcc11"
+            install: "g++-11"
+            cxx: "g++-11"
+            cc: "gcc-11"
+            build_type: Release
+
+          - name: "gcc10"
+            install: "g++-10"
+            cxx: "g++-10"
+            cc: "gcc-10"
+            build_type: Release
+
+          - name: "gcc9"
+            install: "g++-9"
+            cxx: "g++-9"
+            cc: "gcc-9"
+            build_type: Release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: rlm
+          fetch-depth: 1
+          submodules: recursive
+
+      - name: Add package source
+        continue-on-error: true
+        run: |
+          echo 'APT::Acquire::Retries "5";' | sudo tee -a /etc/apt/apt.conf.d/80-retries > /dev/null
+          sudo add-apt-repository --no-update --yes ppa:ubuntu-toolchain-r/ppa
+          sudo add-apt-repository --no-update --yes ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+
+      - name: Install CMake
+        run: sudo apt-get install --yes cmake
+
+      - name: Install ccache
+        run: sudo apt-get install --yes ccache
+
+      - name: Install compiler ${{ matrix.install }}
+        run: sudo apt-get install --yes ${{ matrix.install }}
+
+      - name: Load ccache
+        if: matrix.name != 'clang_format'
+        uses: actions/cache@v2
+        with:
+          path: .ccache
+          key: ${{ runner.os }}-${{ matrix.name }}-ccache-${{ github.ref }}-${{ github.run_number }}
+          # Restoring: From current branch, otherwise from base branch, otherwise from any branch.
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.name }}-ccache-${{ github.ref }}
+            ${{ runner.os }}-${{ matrix.name }}-ccache-${{ github.base_ref }}
+            ${{ runner.os }}-${{ matrix.name }}-ccache-
+
+      - name: Tool versions
+        run: |
+          env cmake --version
+          env ${{ matrix.cxx }} --version
+
+      - name: Configure tests
+        env:
+          CXX: ${{ matrix.cxx }}
+          CC: ${{ matrix.cc }}
+        run: |
+          mkdir build
+          cd build
+          cmake ../rlm -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}"
+
+      - name: Build tests
+        env:
+          CCACHE_BASEDIR: ${{ github.workspace }}
+          CCACHE_DIR: ${{ github.workspace }}/.ccache
+          CCACHE_COMPRESS: true
+          CCACHE_COMPRESSLEVEL: 6
+          CCACHE_MAXSIZE: 500M
+        run: |
+          ccache -p || true
+          cd build
+          make -k -j2
+
+      - name: Run tests
+        run: |
+          cd build
+          ctest . -j2 --output-on-failure
