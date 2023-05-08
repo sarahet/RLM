@@ -33,7 +33,7 @@ jobs:
             cxx_flags: "-std=c++2a"
 
           - name: "gcc9 (c++2a) on macOS"
-            os: macos-10.15
+            os: macos-11
             requires_toolchain: true
             requires_ccache: true
             cxx: "g++-9"
@@ -51,7 +51,7 @@ jobs:
             cxx_flags: "-std=c++17 -fconcepts"
 
           - name: "gcc10 (c++17) on macOS"
-            os: macos-10.15
+            os: macos-11
             requires_toolchain: true
             requires_ccache: true
             cxx: "g++-10"
@@ -69,7 +69,7 @@ jobs:
             cxx_flags: "-std=c++20"
 
           - name: "gcc10 (c++20) on macOS"
-            os: macos-10.15
+            os: macos-11
             requires_toolchain: true
             requires_ccache: true
             cxx: "g++-10"
@@ -86,7 +86,7 @@ jobs:
             build_type: Release
 
           - name: "gcc8 on macOS"
-            os: macos-10.15
+            os: macos-11
             requires_toolchain: true
             requires_ccache: true
             cxx: "g++-8"
@@ -102,7 +102,7 @@ jobs:
             build_type: Release
 
           - name: "gcc7 on macOS"
-            os: macos-10.15
+            os: macos-11
             requires_toolchain: true
             requires_ccache: true
             cxx: "g++-7"
