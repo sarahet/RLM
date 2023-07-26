@@ -1,7 +1,8 @@
 # RLM
 Read level DNA methylation analysis of bisulfite converted sequencing data
 
-![](https://github.com/sarahet/RLM/actions/workflows/ci.yml/badge.svg)
+![](https://github.com/sarahet/RLM/actions/workflows/ci_linux.yml/badge.svg)
+![](https://github.com/sarahet/RLM/actions/workflows/ci_macos.yml/badge.svg)
 
 For detailed documentation and usage examples, please visit the [Wiki](https://github.com/sarahet/RLM/wiki).
 
