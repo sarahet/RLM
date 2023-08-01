@@ -27,7 +27,8 @@
 #include <string>
 #include <vector>
 
-#include <seqan3/argument_parser/all.hpp>
+#include <sharg/all.hpp>
+
 #include <seqan3/core/debug_stream.hpp>
 #include <seqan3/io/sequence_file/input.hpp>
 #include <seqan3/io/sam_file/all.hpp>
@@ -62,7 +63,7 @@ int real_main(cmd_arguments & args);
 int main(int argc, char ** argv)
 {
     // The argument parser
-    seqan3::argument_parser parser{"RLM", argc, argv};
+    sharg::parser parser{"RLM", argc, argv};
     cmd_arguments args{};
 
     initialise_argument_parser(parser, args);
@@ -71,7 +72,7 @@ int main(int argc, char ** argv)
     {
          parser.parse();
     }
-    catch (seqan3::argument_parser_error const & ext)
+    catch (sharg::parser_error const & ext)
     {
         seqan3::debug_stream << "Parsing error. " << ext.what() << "\n";
         return -1;

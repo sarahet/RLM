@@ -3,7 +3,7 @@ cmake_minimum_required (VERSION 3.8)
 ## CUSTOMISE
 
 # Define the application name and version.
-project (RLM VERSION 1.0.0)
+project (RLM VERSION 1.1.0)
 
 ## BUILD
 
@@ -24,8 +24,9 @@ string (ASCII 27 Esc)
 set (FontBold "${Esc}[1m")
 set (FontReset "${Esc}[m")
 
-# Dependency: SeqAn3.
+# Dependency: SeqAn3, sharg-parser.
 find_package (SeqAn3 QUIET REQUIRED HINTS lib/seqan3/build_system)
+find_package (sharg QUIET REQUIRED HINTS lib/sharg-parser/build_system)
 
 add_subdirectory (src)
 message (STATUS "${FontBold}You can run `make` to build the application.${FontReset}")
