@@ -32,9 +32,7 @@
 #include <seqan3/core/debug_stream.hpp>
 #include <seqan3/io/sequence_file/input.hpp>
 #include <seqan3/io/sam_file/all.hpp>
-#include <seqan3/range/views/slice.hpp>
-#include <seqan3/range/views/to.hpp>
-#include <seqan3/std/ranges>
+#include <seqan3/utility/views/slice.hpp>
 
 #include "../include/argument_parsing.hpp"
 #include "../include/data_structures.hpp"
@@ -293,7 +291,7 @@ int real_main(cmd_arguments & args)
                 // If 5p soft clipping
                 rec.sequence() = rec.sequence()
                                | seqan3::views::slice(get<uint32_t>(rec.cigar_sequence()[0]), rec.sequence().size())
-                               | seqan3::views::to<seqan3::dna5_vector>;
+                               | seqan3::ranges::to<seqan3::dna5_vector>();
             }
             else if (get<seqan3::cigar::operation>(rec.cigar_sequence()[0]) == 'H'_cigar_operation &&
                      get<seqan3::cigar::operation>(rec.cigar_sequence()[1]) == 'S'_cigar_operation)
@@ -301,7 +299,7 @@ int real_main(cmd_arguments & args)
                 // If 5p soft clipping after hard clipping
                 rec.sequence() = rec.sequence()
                                | seqan3::views::slice(get<uint32_t>(rec.cigar_sequence()[1]), rec.sequence().size())
-                               | seqan3::views::to<seqan3::dna5_vector>;
+                               | seqan3::ranges::to<seqan3::dna5_vector>();
             }
 
             if (get<seqan3::cigar::operation>(rec.cigar_sequence()[rec.cigar_sequence().size() - 1]) == 'S'_cigar_operation)
@@ -309,7 +307,7 @@ int real_main(cmd_arguments & args)
                 // If 3p soft clipping
                 rec.sequence() = rec.sequence()
                                | seqan3::views::slice(0, rec.sequence().size() - get<uint32_t>(rec.cigar_sequence()[rec.cigar_sequence().size() - 1]))
-                               | seqan3::views::to<seqan3::dna5_vector>;
+                               | seqan3::ranges::to<seqan3::dna5_vector>();
             }
             else if (get<seqan3::cigar::operation>(rec.cigar_sequence()[rec.cigar_sequence().size() - 1]) == 'H'_cigar_operation &&
                      get<seqan3::cigar::operation>(rec.cigar_sequence()[rec.cigar_sequence().size() - 2]) == 'S'_cigar_operation)
@@ -317,7 +315,7 @@ int real_main(cmd_arguments & args)
                 // If 3p soft clipping before hard clipping
                 rec.sequence() = rec.sequence()
                                | seqan3::views::slice(0, rec.sequence().size() - get<uint32_t>(rec.cigar_sequence()[rec.cigar_sequence().size() - 2]))
-                               | seqan3::views::to<seqan3::dna5_vector>;
+                               | seqan3::ranges::to<seqan3::dna5_vector>();
             }
         }
 
@@ -378,13 +376,13 @@ int real_main(cmd_arguments & args)
             {
                 rec.sequence() = rec.sequence()
                                | seqan3::views::slice(0, rec.sequence().size() - 2)
-                               | seqan3::views::to<seqan3::dna5_vector>;
+                               | seqan3::ranges::to<seqan3::dna5_vector>();
             }
             else
             {
                 rec.sequence() = rec.sequence()
                                | seqan3::views::slice(2, rec.sequence().size())
-                               | seqan3::views::to<seqan3::dna5_vector>;
+                               | seqan3::ranges::to<seqan3::dna5_vector>();
                 rec.reference_position().value() = rec.reference_position().value() + 2;
             }
         }
@@ -491,7 +489,7 @@ int real_main(cmd_arguments & args)
 
                         seqan3::dna5_vector second_seq_part = rec2.sequence()
                                                             | seqan3::views::slice(overlap, rec2.sequence().size())
-                                                            | seqan3::views::to<seqan3::dna5_vector>;
+                                                            | seqan3::ranges::to<seqan3::dna5_vector>();
                         rec1.sequence().insert(rec1.sequence().end(), second_seq_part.begin(), second_seq_part.end());
 
                         process_bam_record(output_stream,

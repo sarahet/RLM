@@ -28,6 +28,13 @@ set (FontReset "${Esc}[m")
 find_package (SeqAn3 QUIET REQUIRED HINTS lib/seqan3/build_system)
 find_package (sharg QUIET REQUIRED HINTS lib/sharg-parser/build_system)
 
+# GCC12 and above: Disable warning about std::hardware_destructive_interference_size not being ABI-stable.
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12)
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-interference-size")
+    endif ()
+endif ()
+
 add_subdirectory (src)
 message (STATUS "${FontBold}You can run `make` to build the application.${FontReset}")
 

@@ -27,9 +27,9 @@ jobs:
             cc: "gcc-12"
             build_type: Release
 
-          - name: "gcc10"
-            cxx: "g++-10"
-            cc: "gcc-10"
+          - name: "gcc11"
+            cxx: "g++-11"
+            cc: "gcc-11"
             build_type: Release
 
     steps:

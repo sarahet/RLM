@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include <cstdlib>               // system calls
-#include <seqan3/std/filesystem> // test directory creation
-#include <sstream>               // ostringstream
-#include <string>                // strings
+#include <cstdlib>    // system calls
+#include <filesystem> // test directory creation
+#include <sstream>    // ostringstream
+#include <string>     // strings
 
 // Include the EXPECT_RANGE_EQ macro for better information if range elements differ.
 #include <seqan3/test/expect_range_eq.hpp>
