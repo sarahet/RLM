@@ -124,7 +124,7 @@ bool process_bam_record_impl(std::ofstream & output_stream,
     // Extract reference sequence matching the reads.
     seqan3::dna5_vector ref_sequence = genome_seqs[reference_id]
 				                     | seqan3::views::slice(reference_position, reference_position + sequence.size())
-				                     | seqan3::views::to<seqan3::dna5_vector>;
+				                     | seqan3::ranges::to<seqan3::dna5_vector>();
 
     // Find all CpG positions
     cpg_pos = find_cpg_pos(ref_sequence);

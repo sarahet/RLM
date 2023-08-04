@@ -7,11 +7,11 @@ Read level DNA methylation analysis of bisulfite converted sequencing data
 For detailed documentation and usage examples, please visit the [Wiki](https://github.com/sarahet/RLM/wiki).
 
 ## Dependencies
-* GCC   (minimum required version: 7)
+* GCC   (minimum required version: 11, no other compiler is currently supported)
 * CMake (minimum required version: 3.8)
-* zlib (minimum required version: 1.2)
+* zlib  (minimum required version: 1.2)
 
-**Attention:** Due to the requirements of the SeqAn3 library, only the latest minor GCC releases are supported for each major version. 
+**Attention:** Due to the requirements of the SeqAn3 library, only the latest minor GCC releases are supported for each major version.
 
 ## Installation
 To install RLM from github, run:
@@ -116,13 +116,13 @@ RLM is a standalone C++ application. However, to provide summary statistics and 
 The script can be called the following way:
 
 ```
-Rscript -e "rmarkdown::render('summarize_read_level_stats.Rmd', 
+Rscript -e "rmarkdown::render('summarize_read_level_stats.Rmd',
 params=list(
 single_read_input_file = '/path/to/output_single_read_info.bed',
 pdr_input_file = '/path/to/output_pdr.bed',
 entropy_input_file = '/path/to/output_entropy.bed',
 sample_name = 'my_sample',
-feature_input_file = '/path/to/features.bed'), 
+feature_input_file = '/path/to/features.bed'),
 output_file = 'my_output.pdf')"
 ```
 
