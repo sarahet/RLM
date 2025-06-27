@@ -3,7 +3,7 @@ cmake_minimum_required (VERSION 3.8)
 ## CUSTOMISE
 
 # Define the application name and version.
-project (RLM VERSION 1.1.0)
+project (RLM VERSION 1.2.0)
 
 ## BUILD
 

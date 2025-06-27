@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: rlm
           fetch-depth: 1
@@ -59,7 +59,7 @@ jobs:
 
       - name: Load ccache
         if: matrix.name != 'clang_format'
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: .ccache
           key: ${{ runner.os }}-${{ matrix.name }}-ccache-${{ github.ref }}-${{ github.run_number }}
