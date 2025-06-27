@@ -16,7 +16,7 @@ defaults:
 jobs:
   build:
     name: ${{ matrix.name }}
-    runs-on: macos-11
+    runs-on: macos-14
     timeout-minutes: 120
     strategy:
       fail-fast: false
@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: rlm
           fetch-depth: 2
@@ -50,7 +50,7 @@ jobs:
         run: brew install gcc@$(echo "${{ matrix.cxx }}" | sed "s/g++-//g")
 
       - name: Load ccache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: .ccache
           key: ${{ runner.os }}-${{ matrix.name }}-ccache-${{ github.ref }}-${{ github.run_number }}
