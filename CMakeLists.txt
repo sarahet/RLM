@@ -1,9 +1,19 @@
-cmake_minimum_required (VERSION 3.8)
+cmake_minimum_required (VERSION 3.20)
 
 ## CUSTOMISE
 
 # Define the application name and version.
 project (RLM VERSION 1.2.0)
+
+if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    message(FATAL_ERROR
+        "RLM currently supports GCC only. Detected: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+endif ()
+
+# C++20 (required by SeqAn3)
+set (CMAKE_CXX_STANDARD 20)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set (CMAKE_CXX_EXTENSIONS OFF)
 
 ## BUILD
 
@@ -24,9 +34,28 @@ string (ASCII 27 Esc)
 set (FontBold "${Esc}[1m")
 set (FontReset "${Esc}[m")
 
-# Dependency: SeqAn3, sharg-parser.
-find_package (SeqAn3 QUIET REQUIRED HINTS lib/seqan3/build_system)
-find_package (sharg QUIET REQUIRED HINTS lib/sharg-parser/build_system)
+# Dependencies via CPM
+include (${CMAKE_CURRENT_SOURCE_DIR}/cmake/CPM.cmake)
+
+# Pin versions
+CPMAddPackage(
+  NAME seqan3
+  GITHUB_REPOSITORY seqan/seqan3
+  GIT_TAG 3.4.0
+)
+
+CPMAddPackage(
+  NAME sharg-parser
+  GITHUB_REPOSITORY seqan/sharg-parser
+  GIT_TAG 1.2.1
+)
+
+CPMAddPackage(
+  NAME googletest
+  GITHUB_REPOSITORY google/googletest
+  GIT_TAG v1.15.2
+  OPTIONS "INSTALL_GTEST OFF"
+)
 
 # GCC12 and above: Disable warning about std::hardware_destructive_interference_size not being ABI-stable.
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")

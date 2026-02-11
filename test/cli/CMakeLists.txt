@@ -1,9 +1,9 @@
-cmake_minimum_required (VERSION 3.8)
+cmake_minimum_required (VERSION 3.20)
 
-add_cli_test (rlm_options_test.cpp)
+add_app_test (rlm_options_test.cpp)
 target_use_datasources (rlm_options_test FILES chrM.fa)
 
-add_cli_test (rlm_single_read_test.cpp)
+add_app_test (rlm_single_read_test.cpp)
 target_use_datasources (rlm_single_read_test FILES chrM.fa)
 target_use_datasources (rlm_single_read_test FILES test_ref.fa)
 target_use_datasources (rlm_single_read_test FILES test_skipped_reads.sam)
@@ -19,7 +19,7 @@ target_use_datasources (rlm_single_read_test FILES test_single_reads_name_sorted
 target_use_datasources (rlm_single_read_test FILES control_single_reads.bed)
 target_use_datasources (rlm_single_read_test FILES control_single_reads_rrbs.bed)
 
-add_cli_test (rlm_aligner_test.cpp)
+add_app_test (rlm_aligner_test.cpp)
 target_use_datasources (rlm_single_read_test FILES test_ref.fa)
 target_use_datasources (rlm_single_read_test FILES test_bsmap.bam)
 target_use_datasources (rlm_single_read_test FILES test_bismark.bam)
