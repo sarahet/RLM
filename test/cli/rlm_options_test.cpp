@@ -10,7 +10,7 @@ TEST_F(RLM, no_options)
         "RLM - Read level DNA methylation analysis of bisulfite converted sequencing data.\n"
         "=================================================================================\n"
         "    RLM [-d|--rrbs] -b|--bam path -r|--reference path -m|--mode string\n"
-        "    -s|--score string [-a|--aligner string] [-c|--coverage uint32]\n"
+        "    [-s|--score string] [-a|--aligner string] [-c|--coverage uint32]\n"
         "    [-q|--mapping_quality uint32] [-o|--output_single_read path]\n"
         "    [-e|--output_entropy path] [-p|--output_pdr path]\n"
         "    Try -h or --help for more information.\n"

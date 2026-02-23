@@ -1,8 +1,8 @@
 // ==========================================================================
 //                                  RLM
 // ==========================================================================
-// Copyright (c) 2021-2025, Sara Hetzel <hetzel @ molgen.mpg.de>
-// Copyright (c) 2021-2025, Max-Planck-Institut für Molekulare Genetik
+// Copyright (c) 2021-2026, Sara Hetzel <hetzel @ molgen.mpg.de>
+// Copyright (c) 2021-2026, Max-Planck-Institut für Molekulare Genetik
 // All rights reserved.
 //
 // This file is part of RLM.
@@ -21,6 +21,12 @@
 
 #pragma once
 
+#include <cstdint>
+#include <filesystem>
+#include <string>
+
+#include <sharg/parser.hpp>
+
 // Struct that stores command line arguments
 struct cmd_arguments
 {
@@ -31,7 +37,6 @@ struct cmd_arguments
     std::filesystem::path output_file_entropy{"output_entropy.bed"};
     std::filesystem::path output_file_pdr{"output_pdr.bed"};
 
-    uint32_t verbosity = 0;
     uint32_t mapq_filter = 30;
     uint32_t coverage_filter = 10;
 
@@ -43,11 +48,11 @@ struct cmd_arguments
 };
 
 // Function to initialize the argument parser
-void initialise_argument_parser(sharg::parser & parser, cmd_arguments & args)
+inline void initialise_argument_parser(sharg::parser & parser, cmd_arguments & args)
 {
     parser.info.author = "Sara Hetzel";
     parser.info.short_description = "Read level DNA methylation analysis of bisulfite converted sequencing data.";
-    parser.info.version = "1.2.0";
+    parser.info.version = "1.3.0";
 
     parser.add_option(args.bam_file,
                       sharg::config{.short_id    = 'b',
@@ -73,8 +78,7 @@ void initialise_argument_parser(sharg::parser & parser, cmd_arguments & args)
     parser.add_option(args.score,
                       sharg::config{.short_id    = 's',
                                     .long_id     = "score",
-                                    .description = "The score(s) to compute. For 'entropy', 'pdr' and 'all' the single read output is always computed.",
-                                    .required    = true,
+                                    .description = "Select score output mode. For 'entropy', 'pdr' and 'all' the single read output is always computed.",
                                     .validator   = sharg::value_list_validator{"single_read", "entropy", "pdr", "all"}});
 
     parser.add_option(args.aligner,

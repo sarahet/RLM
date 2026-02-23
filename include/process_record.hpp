@@ -1,8 +1,8 @@
 // ==========================================================================
 //                                  RLM
 // ==========================================================================
-// Copyright (c) 2021-2025, Sara Hetzel <hetzel @ molgen.mpg.de>
-// Copyright (c) 2021-2025, Max-Planck-Institut für Molekulare Genetik
+// Copyright (c) 2021-2026, Sara Hetzel <hetzel @ molgen.mpg.de>
+// Copyright (c) 2021-2026, Max-Planck-Institut für Molekulare Genetik
 // All rights reserved.
 //
 // This file is part of RLM.
@@ -21,38 +21,54 @@
 
 #pragma once
 
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <cstdint>
+#include <deque>
+#include <fstream>
+#include <map>
+#include <numeric>
+#include <string>
+#include <tuple>
+#include <vector>
+
+#include <seqan3/alphabet/nucleotide/dna5.hpp>
+#include <seqan3/alphabet/views/to_rank.hpp>
+
 #include "methylation_scores.hpp"
 
 using seqan3::operator""_dna5;
-using num_reads_t = uint32_t;
-using num_discordant_reads_t = uint32_t;
-using sum_transitions_t = double;
-using num_methyl_cpgs_t = uint32_t;
 
 // Find positions of all CpGs in a sequence
 template <typename ref_type>
-std::vector<uint16_t> find_cpg_pos(ref_type const & reference)
+std::vector<uint32_t> find_cpg_pos(ref_type const & reference)
 {
-    std::vector<uint16_t> occurrencs;
+    std::vector<uint32_t> occurrences;
     seqan3::dna5_vector pattern = "CG"_dna5;
     auto cpg_pos = std::search(reference.begin(), reference.end(), pattern.begin(), pattern.end());
     while (cpg_pos != reference.end())
     {
-        occurrencs.push_back(cpg_pos - reference.begin());
+        occurrences.push_back(cpg_pos - reference.begin());
         ++cpg_pos;
         cpg_pos = std::search(cpg_pos, reference.end(), pattern.begin(), pattern.end());
     }
-    return occurrencs;
+    return occurrences;
 }
 
 // Insert CpG into map to store it until all BAM records are read
-void insert_CpG(size_t const & reference_id,
+inline void insert_CpG(size_t const & reference_id,
                 size_t const & reference_position,
                 std::map<GenomePosition, std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> > & all_CpGs,
-                std::vector<uint16_t> const & cpg_pos,
+                std::vector<uint32_t> const & cpg_pos,
                 std::vector<uint16_t> const & cpg_config)
 {
-    for (size_t i; i < cpg_pos.size(); i++)
+    assert(cpg_config.size() == cpg_pos.size());
+
+    auto disc = calculate_discordance_per_read(cpg_config);
+    auto trans = calculate_transitions_per_read(cpg_config);
+
+    for (size_t i = 0; i < cpg_pos.size(); i++)
     {
         GenomePosition pos;
         pos.ref_id = reference_id;
@@ -63,28 +79,28 @@ void insert_CpG(size_t const & reference_id,
         if (it != all_CpGs.end())
         {
             std::get<0>(it->second)++;
-            std::get<1>(it->second) += calculate_discordance_per_read(cpg_config);
-            std::get<2>(it->second) += calculate_transitions_per_read(cpg_config);
+            std::get<1>(it->second) += disc;
+            std::get<2>(it->second) += trans;
             std::get<3>(it->second) += cpg_config[i];
         }
         else
         {
-            all_CpGs.insert(std::make_pair(pos, std::make_tuple(1, calculate_discordance_per_read(cpg_config), calculate_transitions_per_read(cpg_config), cpg_config[i])));
+            all_CpGs.insert(std::make_pair(pos, std::make_tuple(1, disc, trans, cpg_config[i])));
         }
     }
 }
 
 // Insert kmer into map to store it until all BAM records are read
-void insert_kmer(size_t const & reference_id,
+inline void insert_kmer(size_t const & reference_id,
                  size_t const & reference_position,
                  std::map<GenomePosition, std::vector<uint32_t> > & all_kmers,
-                 std::vector<uint16_t> const & cpg_pos,
+                 std::vector<uint32_t> const & cpg_pos,
                  std::vector<uint16_t> const & cpg_config)
 {
     if (cpg_pos.size() < 4)
         return;
 
-    for (size_t i; i < (cpg_pos.size() - 3); i++)
+    for (size_t i = 0; i < (cpg_pos.size() - 3); i++)
     {
         GenomePosition pos;
         pos.ref_id = reference_id;
@@ -106,7 +122,7 @@ void insert_kmer(size_t const & reference_id,
 }
 
 // Internal function to process a single BAM record
-bool process_bam_record_impl(std::ofstream & output_stream,
+inline bool process_bam_record_impl(std::ofstream & output_stream,
                              read_type const & tag,
                              size_t const & reference_id,
                              size_t const & reference_position,
@@ -114,7 +130,7 @@ bool process_bam_record_impl(std::ofstream & output_stream,
                              std::string const & id,
                              std::deque<std::string> const & ref_ids,
                              std::vector<seqan3::dna5_vector> const & genome_seqs,
-                             std::vector<uint16_t> & cpg_pos,
+                             std::vector<uint32_t> & cpg_pos,
                              std::vector<uint16_t> & cpg_config)
 {
     // Define look-up for methylated or unmethylated CpGs (depending on base that needs to be evaluated).
@@ -122,6 +138,9 @@ bool process_bam_record_impl(std::ofstream & output_stream,
     static constexpr std::array<char, 2> methyl_context_char = {'g', 'G'};
 
     // Extract reference sequence matching the reads.
+    assert(reference_id < genome_seqs.size());
+    assert(reference_position + sequence.size() <= genome_seqs[reference_id].size());
+
     seqan3::dna5_vector ref_sequence = genome_seqs[reference_id]
 				                     | seqan3::views::slice(reference_position, reference_position + sequence.size())
 				                     | seqan3::ranges::to<seqan3::dna5_vector>();
@@ -167,7 +186,7 @@ bool process_bam_record_impl(std::ofstream & output_stream,
         return skip;
 
     // Prepare output
-    uint16_t num_methyl_cpgs = std::accumulate(cpg_config.begin(), cpg_config.end(), 0);
+    uint16_t num_methyl_cpgs = std::accumulate(cpg_config.begin(), cpg_config.end(), uint16_t{0});
 
     output_stream << ref_ids[reference_id] << "\t"
                   << reference_position << "\t"
@@ -188,7 +207,7 @@ bool process_bam_record_impl(std::ofstream & output_stream,
 }
 
 // Outer wrapper function overload for single read score only
-void process_bam_record(std::ofstream & output_stream,
+inline void process_bam_record(std::ofstream & output_stream,
                         read_type const & tag,
                         size_t const & reference_id,
                         size_t const & reference_position,
@@ -200,7 +219,7 @@ void process_bam_record(std::ofstream & output_stream,
                         std::map<GenomePosition, std::vector<uint32_t> > & all_kmers,
                         score_tag<false, false>)
 {
-    std::vector<uint16_t> cpg_pos;
+    std::vector<uint32_t> cpg_pos;
     std::vector<uint16_t> cpg_config;
 
     process_bam_record_impl(output_stream,
@@ -216,7 +235,7 @@ void process_bam_record(std::ofstream & output_stream,
 }
 
 // Outer wrapper function overload for PDR/RTS scores
-void process_bam_record(std::ofstream & output_stream,
+inline void process_bam_record(std::ofstream & output_stream,
                         read_type const & tag,
                         size_t const & reference_id,
                         size_t const & reference_position,
@@ -228,7 +247,7 @@ void process_bam_record(std::ofstream & output_stream,
                         std::map<GenomePosition, std::vector<uint32_t> > & all_kmers,
                         score_tag<true, false>)
 {
-    std::vector<uint16_t> cpg_pos;
+    std::vector<uint32_t> cpg_pos;
     std::vector<uint16_t> cpg_config;
 
     bool skip = process_bam_record_impl(output_stream,
@@ -250,7 +269,7 @@ void process_bam_record(std::ofstream & output_stream,
 }
 
 // Outer wrapper function overload for entropy/epipolymorphism scores
-void process_bam_record(std::ofstream & output_stream,
+inline void process_bam_record(std::ofstream & output_stream,
                         read_type const & tag,
                         size_t const & reference_id,
                         size_t const & reference_position,
@@ -262,7 +281,7 @@ void process_bam_record(std::ofstream & output_stream,
                         std::map<GenomePosition, std::vector<uint32_t> > & all_kmers,
                         score_tag<false, true>)
 {
-    std::vector<uint16_t> cpg_pos;
+    std::vector<uint32_t> cpg_pos;
     std::vector<uint16_t> cpg_config;
 
     bool skip = process_bam_record_impl(output_stream,
@@ -283,7 +302,7 @@ void process_bam_record(std::ofstream & output_stream,
 }
 
 // Outer wrapper function overload for all scores
-void process_bam_record(std::ofstream & output_stream,
+inline void process_bam_record(std::ofstream & output_stream,
                         read_type const & tag,
                         size_t const & reference_id,
                         size_t const & reference_position,
@@ -295,7 +314,7 @@ void process_bam_record(std::ofstream & output_stream,
                         std::map<GenomePosition, std::vector<uint32_t> > & all_kmers,
                         score_tag<true, true>)
 {
-    std::vector<uint16_t> cpg_pos;
+    std::vector<uint32_t> cpg_pos;
     std::vector<uint16_t> cpg_config;
 
     bool skip = process_bam_record_impl(output_stream,

@@ -1,8 +1,8 @@
 // ==========================================================================
 //                                  RLM
 // ==========================================================================
-// Copyright (c) 2021-2025, Sara Hetzel <hetzel @ molgen.mpg.de>
-// Copyright (c) 2021-2025, Max-Planck-Institut für Molekulare Genetik
+// Copyright (c) 2021-2026, Sara Hetzel <hetzel @ molgen.mpg.de>
+// Copyright (c) 2021-2026, Max-Planck-Institut für Molekulare Genetik
 // All rights reserved.
 //
 // This file is part of RLM.
@@ -20,11 +20,16 @@
 // ==========================================================================
 
 #include <algorithm>
+#include <cstdint>
 #include <fstream>
+#include <iostream>
 #include <numeric>
 #include <map>
+#include <set>
 #include <sstream>
 #include <string>
+#include <type_traits>
+#include <variant>
 #include <vector>
 
 #include <sharg/all.hpp>
@@ -69,30 +74,30 @@ int main(int argc, char ** argv)
     try
     {
          parser.parse();
-    }
-    catch (sharg::parser_error const & ext)
-    {
-        seqan3::debug_stream << "Parsing error. " << ext.what() << "\n";
-        return -1;
-    }
 
-    // Get score enum
-    score_type score = _score_name_to_enum(args.score);
+        // Get score enum
+        score_type score = _score_name_to_enum(args.score);
 
-    try
-    {
         switch (score)
         {
             case score_type::SINGLE_READ:  return arg_conv1<false, false>(args);
             case score_type::PDR:          return arg_conv1<true, false>(args);
             case score_type::ENTROPY:      return arg_conv1<false, true>(args);
             case score_type::ALL:          return arg_conv1<true, true>(args);
-            default: throw "Undefined score requested.";
         }
+
+        throw std::runtime_error("Undefined score requested.");
     }
-    catch (const char * e)
+
+    catch (sharg::parser_error const & ext)
     {
-        std::cerr << "Error: " << e << std::endl;
+        seqan3::debug_stream << "Parsing error. " << ext.what() << "\n";
+        return -1;
+    }
+
+    catch (std::exception const & e)
+    {
+        std::cerr << "Error: " << e.what() << '\n';
         return -1;
     }
 }
@@ -105,8 +110,8 @@ int arg_conv1(cmd_arguments & args)
     {
         case sequencing_type::RRBS:  return arg_conv2<calc_pdr_score, calc_entropy_score, true>(args);
         case sequencing_type::WGBS:  return arg_conv2<calc_pdr_score, calc_entropy_score, false>(args);
-        default: throw "Undefined sequencing type requested.";
     }
+    throw std::runtime_error("Undefined sequencing type requested.");
 }
 
 template <bool calc_pdr_score,  bool calc_entropy_score, bool rrbs>
@@ -117,8 +122,8 @@ int arg_conv2(cmd_arguments & args)
     {
         case mate_type::SE:  return arg_conv3<calc_pdr_score, calc_entropy_score, rrbs, true>(args);
         case mate_type::PE:  return arg_conv3<calc_pdr_score, calc_entropy_score, rrbs, false>(args);
-        default: throw "Undefined sequencing mode requested.";
     }
+    throw std::runtime_error("Undefined sequencing mode requested.");
 }
 
 template <bool calc_pdr_score,  bool calc_entropy_score, bool rrbs, bool single_end>
@@ -132,8 +137,8 @@ int arg_conv3(cmd_arguments & args)
         case align_type::BISMARK:   return real_main<calc_pdr_score, calc_entropy_score, rrbs, single_end, align_type::BISMARK>(args);
         case align_type::SEGEMEHL:  return real_main<calc_pdr_score, calc_entropy_score, rrbs, single_end, align_type::SEGEMEHL>(args);
         case align_type::GEM:       return real_main<calc_pdr_score, calc_entropy_score, rrbs, single_end, align_type::GEM>(args);
-        default: throw "Undefined alignment tool requested.";
     }
+    throw std::runtime_error("Undefined alignment tool requested.");
 }
 
 // Real main function containing the program
@@ -177,17 +182,17 @@ int real_main(cmd_arguments & args)
     try
     {
         if (mapping_file.header().ref_ids().size() != genome_seqs_ids.size())
-            throw "Different number of sequences in references and BAM file.";
+            throw std::runtime_error("Different number of sequences in references and BAM file.");
 
         for (size_t i = 0; i < mapping_file.header().ref_ids().size(); i++)
         {
             if (mapping_file.header().ref_ids()[i] != genome_seqs_ids[i])
-                throw "Different reference sequence order or different reference sequences in fasta and BAM file.";
+                throw std::runtime_error("Different reference sequence order or different reference sequences in fasta and BAM file.");
         }
     }
-    catch (const char * e)
+    catch (std::exception const & e)
     {
-        std::cerr << "Error: " << e << std::endl;
+        std::cerr << "Error: " << e.what() << '\n';
         return -1;
     }
 
@@ -218,21 +223,76 @@ int real_main(cmd_arguments & args)
 
     std::cout << "Starting BAM file processing" << std::endl;
 
+    // Helper: get read_type for any record (defined once, not per-iteration)
+    auto type_of = [&](record_t const & r) -> read_type
+    {
+        if constexpr (aligner == align_type::BSMAP)
+        {
+            return _read_tag_bsmap_to_enum(r.tags().get<"ZS"_tag>());
+        }
+        else if constexpr (aligner == align_type::BISMARK)
+        {
+            return _read_tag_bismark_to_enum(r.tags().get<"XG"_tag>());
+        }
+        else
+        {
+            // SEGEMEHL declares XB tag as string while GEM declares XB tag as char
+            // Therefore no overload for seqan3::sam_tag_type is possible and need to iterate through std::variant types
+            auto current_tag = r.tags().at("XB"_tag);
+            std::string xb_tag;
+
+            std::visit([&xb_tag] (auto && arg)
+            {
+                using T = std::remove_cvref_t<decltype(arg)>;
+                if constexpr (std::is_same_v<T, char>)
+                    xb_tag = std::string(1, arg);
+                else if constexpr (std::is_same_v<T, std::string>)
+                    xb_tag = arg;
+                else
+                    throw std::runtime_error("Invalid type for XB tag. Must be either string (segemehl) or char (GEM).");
+            }, current_tag);
+
+            if constexpr (aligner == align_type::SEGEMEHL)
+                return _read_tag_segemehl_to_enum(xb_tag);
+            else
+                return _read_tag_gem_to_enum(xb_tag);
+        }
+    };
+
+    // Helper: filter out records we never want to process
+    auto skip_record = [&](record_t const & rec) -> bool
+    {
+        return ((!static_cast<bool>(rec.flag() & seqan3::sam_flag::paired) && args.mode == "PE") ||
+                static_cast<bool>(rec.flag() & seqan3::sam_flag::unmapped) ||
+                static_cast<bool>(rec.flag() & seqan3::sam_flag::secondary_alignment) ||
+                static_cast<bool>(rec.flag() & seqan3::sam_flag::failed_filter) ||
+                static_cast<bool>(rec.flag() & seqan3::sam_flag::duplicate) ||
+                static_cast<bool>(rec.flag() & seqan3::sam_flag::supplementary_alignment) ||
+                rec.mapping_quality() < args.mapq_filter);
+    };
+
+    // Helper: call process_bam_record with the shared argument tail (reduces repetition & mistakes)
+    auto process = [&](read_type tag, record_t const & r)
+    {
+        process_bam_record(output_stream,
+                           tag,
+                           r.reference_id().value(),
+                           r.reference_position().value(),
+                           r.sequence(),
+                           r.id(),
+                           mapping_file.header().ref_ids(),
+                           genome_seqs,
+                           all_CpGs,
+                           all_kmers,
+                           score_tag{});
+    };
+
     for (auto & rec : mapping_file)
     {
         // Check if read is properly mapped and paired (if PE mode), not vendor-failed, not supplementary
         // or secondary alignment and not PCR duplicate
-        if ((!static_cast<bool>(rec.flag() & seqan3::sam_flag::paired) && args.mode == "PE") ||
-            static_cast<bool>(rec.flag() & seqan3::sam_flag::unmapped) ||
-            static_cast<bool>(rec.flag() & seqan3::sam_flag::secondary_alignment) ||
-            static_cast<bool>(rec.flag() & seqan3::sam_flag::failed_filter) ||
-            static_cast<bool>(rec.flag() & seqan3::sam_flag::duplicate) ||
-            static_cast<bool>(rec.flag() & seqan3::sam_flag::supplementary_alignment) ||
-            rec.mapping_quality() < args.mapq_filter)
+        if (skip_record(rec))
             continue;
-
-        // Set tag depending on aligner
-        read_type rec_type;
 
         // Check if alignment contains indels: If yes, skip record.
         using seqan3::get;
@@ -240,10 +300,13 @@ int real_main(cmd_arguments & args)
         bool soft_clip = false;
         for (auto c : rec.cigar_sequence())
         {
-            if (get<seqan3::cigar::operation>(c) != 'M'_cigar_operation &&
-                get<seqan3::cigar::operation>(c) != 'H'_cigar_operation)
+            auto op = get<seqan3::cigar::operation>(c);
+            if (op != 'M'_cigar_operation &&
+                op != 'H'_cigar_operation &&
+                op != '='_cigar_operation &&
+                op != 'X'_cigar_operation)
             {
-                if (get<seqan3::cigar::operation>(c) == 'S'_cigar_operation)
+                if (op == 'S'_cigar_operation)
                 {
                     soft_clip = true;
                 }
@@ -255,26 +318,35 @@ int real_main(cmd_arguments & args)
             }
         }
 
+        // Set tag depending on aligner
+        // Note: two mates of a pair always have the same read type
+        read_type rec_type;
+        try { rec_type = type_of(rec); }
+        catch (std::exception const & e)
+        {
+            std::cerr << "Error: " << e.what() << '\n';
+            return -1;
+        }
+
         if (indel)
         {
             if constexpr(!single_end)
             {
                 if (records.find(rec.id()) != records.end())
                 {
-                    process_bam_record(output_stream,
-                                       rec_type,
-                                       records.at(rec.id()).reference_id().value(),
-                                       records.at(rec.id()).reference_position().value(),
-                                       records.at(rec.id()).sequence(),
-                                       records.at(rec.id()).id(),
-                                       mapping_file.header().ref_ids(),
-                                       genome_seqs,
-                                       all_CpGs,
-                                       all_kmers,
-                                       score_tag{});
+                    // Process stored mate record; derive type from the stored record itself
+                    auto & mate = records.at(rec.id());
+                    read_type mate_type;
+                    try { mate_type = type_of(mate); }
+                    catch (std::exception const & e)
+                    {
+                        std::cerr << "Error: " << e.what() << '\n';
+                        return -1;
+                    }
+
+                    process(mate_type, mate);
                     records.erase(rec.id());
                 }
-
                 else if (mates_with_indels.find(rec.id()) != mates_with_indels.end())
                     mates_with_indels.erase(rec.id());
                 else
@@ -319,58 +391,14 @@ int real_main(cmd_arguments & args)
             }
         }
 
-        if constexpr (aligner == align_type::BSMAP)
-        {
-            rec_type = _read_tag_bsmap_to_enum(rec.tags().get<"ZS"_tag>());
-        }
-        else if constexpr (aligner == align_type::BISMARK)
-        {
-            rec_type = _read_tag_bismark_to_enum(rec.tags().get<"XG"_tag>());
-        }
-        else
-        {
-            // SEGEMEHL declares XB tag as string while GEM declares XB tag as char
-            // Therefore no overload for seqan3::sam_tag_type is possible and need to iterate through
-            // std::variant types
-            try
-            {
-                auto current_tag = rec.tags()["XB"_tag];
-
-                std::string xb_tag;
-
-                std::visit([&xb_tag] (auto && arg)
-                {
-                    using T = std::remove_cvref_t<decltype(arg)>;
-
-                    if constexpr(std::is_same_v<T, char>)
-                    {
-                        xb_tag = std::string(1, arg);
-                    }
-                    else if constexpr (std::is_same_v<T, std::string>)
-                    {
-                        xb_tag = arg;
-                    }
-                    else
-                    {
-                        throw "Invalid type for XB tag. Must be either string (segemehl) or char (GEM).";
-                    }
-                }, current_tag);
-
-                if constexpr (aligner == align_type::SEGEMEHL)
-                    rec_type = _read_tag_segemehl_to_enum(xb_tag);
-                else
-                    rec_type = _read_tag_gem_to_enum(xb_tag);
-            }
-            catch (const char * e)
-            {
-                std::cerr << "Error: " << e << std::endl;
-                return -1;
-            }
-        }
-
         // If RRBS mode, omit potentially artificial bases (should not be applied if already trimmed/accounted for)
         if constexpr (rrbs)
         {
+            // Guard: soft-clipping can shrink aligned sequence dramatically even if raw reads are >=50bp.
+            // Prevent size_t underflow in size()-2 and invalid slicing.
+            if (rec.sequence().size() < 3)
+                continue;
+
             if ((rec_type == read_type::FWD && !static_cast<bool>(rec.flag() & seqan3::sam_flag::on_reverse_strand)) ||
                 (rec_type == read_type::REV && static_cast<bool>(rec.flag() & seqan3::sam_flag::on_reverse_strand)))
             {
@@ -389,158 +417,81 @@ int real_main(cmd_arguments & args)
 
         if constexpr (single_end)
         {
-            process_bam_record(output_stream,
-                               rec_type,
-                               rec.reference_id().value(),
-                               rec.reference_position().value(),
-                               rec.sequence(),
-                               rec.id(),
-                               mapping_file.header().ref_ids(),
-                               genome_seqs,
-                               all_CpGs,
-                               all_kmers,
-                               score_tag{});
+            process(rec_type, rec);
         }
         else
         {
             if (static_cast<bool>(rec.flag() & seqan3::sam_flag::mate_unmapped))
             {
                 // If mate is unmapped just process read immediately
-                process_bam_record(output_stream,
-                                   rec_type,
-                                   rec.reference_id().value(),
-                                   rec.reference_position().value(),
-                                   rec.sequence(),
-                                   rec.id(),
-                                   mapping_file.header().ref_ids(),
-                                   genome_seqs,
-                                   all_CpGs,
-                                   all_kmers,
-                                   score_tag{});
+                process(rec_type, rec);
                 continue;
             }
             else if (mates_with_indels.find(rec.id()) != mates_with_indels.end())
             {
                 // If mate had indel just process read immediately
-                process_bam_record(output_stream,
-                                   rec_type,
-                                   rec.reference_id().value(),
-                                   rec.reference_position().value(),
-                                   rec.sequence(),
-                                   rec.id(),
-                                   mapping_file.header().ref_ids(),
-                                   genome_seqs,
-                                   all_CpGs,
-                                   all_kmers,
-                                   score_tag{});
+                process(rec_type, rec);
                 mates_with_indels.erase(rec.id());
                 continue;
             }
 
             // Check if mate has already been read
-            if (!records.insert(std::make_pair(rec.id(), rec)).second)
+            if (records.insert({rec.id(), rec}).second)
+                continue;
+
+            // Check if reads are overlapping
+            auto & mate = records.at(rec.id());
+
+            int64_t pos1 = static_cast<int64_t>(mate.reference_position().value());
+            int64_t pos2 = static_cast<int64_t>(rec.reference_position().value());
+            int64_t len1 = static_cast<int64_t>(mate.sequence().size());
+            int64_t len2 = static_cast<int64_t>(rec.sequence().size());
+            int64_t end1 = pos1 + len1;
+            int64_t end2 = pos2 + len2;
+
+            int64_t overlap = std::min(end1, end2) - std::max(pos1, pos2);
+
+            if (overlap >= 0 && (rec.reference_id().value() == mate.reference_id().value()))
             {
-                // Check if reads are overlapping
-                int overlap = std::min(records.at(rec.id()).sequence().size() + records.at(rec.id()).reference_position().value(),
-                                       rec.sequence().size() + rec.reference_position().value()) -
-                              std::max(records.at(rec.id()).reference_position().value(), rec.reference_position().value());
-
-                if (overlap >= 0 & (rec.reference_id().value() == records.at(rec.id()).reference_id().value()))
+                // First check if one read is included in the other - just process the longer one in this case
+                if (overlap == len1)
                 {
-                    // First check if one read is included in the other - just process the longer one in this case
-                    if (overlap == records.at(rec.id()).sequence().size())
-                    {
-                        // First read included in second read
-                        process_bam_record(output_stream,
-                                           rec_type,
-                                           rec.reference_id().value(),
-                                           rec.reference_position().value(),
-                                           rec.sequence(),
-                                           rec.id(),
-                                           mapping_file.header().ref_ids(),
-                                           genome_seqs,
-                                           all_CpGs,
-                                           all_kmers,
-                                           score_tag{});
+                    // First read included in second read
+                    process(rec_type, rec);
 
-                    }
-                    else if (overlap == rec.sequence().size())
-                    {
-                        // Second read included in first read
-                        process_bam_record(output_stream,
-                                           rec_type,
-                                           records.at(rec.id()).reference_id().value(),
-                                           records.at(rec.id()).reference_position().value(),
-                                           records.at(rec.id()).sequence(),
-                                           records.at(rec.id()).id(),
-                                           mapping_file.header().ref_ids(),
-                                           genome_seqs,
-                                           all_CpGs,
-                                           all_kmers,
-                                           score_tag{});
-                    }
-                    else
-                    {
-                        // Merge reads
-                        // Determine which read comes first
-                        bool is_first = records.at(rec.id()).reference_position().value() <= rec.reference_position().value();
-                        auto & rec1 = is_first ? records.at(rec.id()) : rec;
-                        auto & rec2 = is_first ? rec : records.at(rec.id());
-
-                        seqan3::dna5_vector second_seq_part = rec2.sequence()
-                                                            | seqan3::views::slice(overlap, rec2.sequence().size())
-                                                            | seqan3::ranges::to<seqan3::dna5_vector>();
-                        rec1.sequence().insert(rec1.sequence().end(), second_seq_part.begin(), second_seq_part.end());
-
-                        process_bam_record(output_stream,
-                                           rec_type,
-                                           rec1.reference_id().value(),
-                                           rec1.reference_position().value(),
-                                           rec1.sequence(),
-                                           rec1.id(),
-                                           mapping_file.header().ref_ids(),
-                                           genome_seqs,
-                                           all_CpGs,
-                                           all_kmers,
-                                           score_tag{});
-                    }
+                }
+                else if (overlap == len2)
+                {
+                    // Second read included in first read
+                    process(rec_type, mate);
                 }
                 else
                 {
-                    // Process both mate records
-                    // Record already stored in map
-                    process_bam_record(output_stream,
-                                       rec_type,
-                                       records.at(rec.id()).reference_id().value(),
-                                       records.at(rec.id()).reference_position().value(),
-                                       records.at(rec.id()).sequence(),
-                                       records.at(rec.id()).id(),
-                                       mapping_file.header().ref_ids(),
-                                       genome_seqs,
-                                       all_CpGs,
-                                       all_kmers,
-                                       score_tag{});
-                    // Current record
-                    process_bam_record(output_stream,
-                                       rec_type,
-                                       rec.reference_id().value(),
-                                       rec.reference_position().value(),
-                                       rec.sequence(),
-                                       rec.id(),
-                                       mapping_file.header().ref_ids(),
-                                       genome_seqs,
-                                       all_CpGs,
-                                       all_kmers,
-                                       score_tag{});
-                }
+                    // Merge reads
+                    // Determine which read comes first
+                    bool is_first = mate.reference_position().value() <= rec.reference_position().value();
+                    auto & rec1 = is_first ? mate : rec;
+                    auto & rec2 = is_first ? rec : mate;
 
-                // Remove from map, now not used anymore
-                records.erase(rec.id());
+                    size_t ov = static_cast<size_t>(overlap);
+                    seqan3::dna5_vector second_seq_part = rec2.sequence()
+                                                        | seqan3::views::slice(ov, rec2.sequence().size())
+                                                        | seqan3::ranges::to<seqan3::dna5_vector>();
+                    rec1.sequence().insert(rec1.sequence().end(), second_seq_part.begin(), second_seq_part.end());
+
+                    process(rec_type, rec1);
+                }
             }
             else
             {
-                continue;
+                // Process both mate records
+                // Record already stored in map
+                process(rec_type, mate);
+                process(rec_type, rec);
             }
+
+            // Remove from map, now not used anymore
+            records.erase(rec.id());
         }
     }
 

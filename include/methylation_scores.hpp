@@ -1,8 +1,8 @@
 // ==========================================================================
 //                                  RLM
 // ==========================================================================
-// Copyright (c) 2021-2025, Sara Hetzel <hetzel @ molgen.mpg.de>
-// Copyright (c) 2021-2025, Max-Planck-Institut für Molekulare Genetik
+// Copyright (c) 2021-2026, Sara Hetzel <hetzel @ molgen.mpg.de>
+// Copyright (c) 2021-2026, Max-Planck-Institut für Molekulare Genetik
 // All rights reserved.
 //
 // This file is part of RLM.
@@ -21,8 +21,13 @@
 
 #pragma once
 
+#include <cassert>
 #include <cmath>
-#include <numeric>
+#include <cstddef>
+#include <cstdint>
+#include <tuple>
+#include <vector>
+
 
 #include "data_structures.hpp"
 
@@ -31,51 +36,66 @@ using num_discordant_reads_t = uint32_t;
 using sum_transitions_t = double;
 using num_methyl_cpgs_t = uint32_t;
 
-// Calculate transirion score of a single read
-double calculate_transitions_per_read(std::vector<uint16_t> const & cpg_config)
+// Calculate transition score of a single read
+inline double calculate_transitions_per_read(std::vector<uint16_t> const & cpg_config)
 {
     uint16_t transitions = 0;
-    for (size_t i = 0; i < (cpg_config.size() - 1); i++)
+
+    if (cpg_config.size() > 1)
     {
-        if (cpg_config[i] != cpg_config[i+1])
-            transitions++;
+        for (size_t i = 0; i < (cpg_config.size() - 1); i++)
+        {
+            if (cpg_config[i] != cpg_config[i+1])
+                transitions++;
+        }
+        return static_cast<double>(transitions) / (cpg_config.size() - 1);
     }
-    return static_cast<double>(transitions) / (cpg_config.size() - 1);
+    else return 0;
 }
 
 // Calculate discordance of a single read
-uint16_t calculate_discordance_per_read(std::vector<uint16_t> const & cpg_config)
+inline uint16_t calculate_discordance_per_read(std::vector<uint16_t> const & cpg_config)
 {
     uint16_t transitions = 0;
-    for (size_t i = 0; i < (cpg_config.size() - 1); i++)
+    
+    if (cpg_config.size() > 1)
     {
-        if (cpg_config[i] != cpg_config[i+1])
-            transitions++;
+        for (size_t i = 0; i < (cpg_config.size() - 1); i++)
+        {
+            if (cpg_config[i] != cpg_config[i+1])
+                transitions++;
+        }
+        return transitions == 0 ? 0 : 1;
     }
-    return transitions == 0 ? 0 : 1;
+    else return 0;
 }
 
 // Calculate average RTS for a CpG
-double calculate_avg_transitions_across_reads(std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> const & position_counts)
+inline double calculate_avg_transitions_across_reads(std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> const & position_counts)
 {
+    assert(std::get<0>(position_counts) > 0);
     return std::get<2>(position_counts) / std::get<0>(position_counts);
 }
 
 // Calculate average discordance for a CpG
-double calculate_avg_discordance_across_reads(std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> const & position_counts)
+inline double calculate_avg_discordance_across_reads(std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> const & position_counts)
 {
+    assert(std::get<0>(position_counts) > 0);
     return static_cast<double>(std::get<1>(position_counts)) / std::get<0>(position_counts);
 }
 
 // Calculate average methylation for a CpG
-double calculate_avg_methylation_across_reads(std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> const & position_counts)
+inline double calculate_avg_methylation_across_reads(std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> const & position_counts)
 {
+    assert(std::get<0>(position_counts) > 0);
     return static_cast<double>(std::get<3>(position_counts)) / std::get<0>(position_counts);
 }
 
 // Calculate entropy for a 4-mer
-double calculate_entropy_across_reads(std::vector<uint32_t> const & epialleles, uint32_t const & num_reads)
+inline double calculate_entropy_across_reads(std::vector<uint32_t> const & epialleles, uint32_t num_reads)
 {
+    assert(num_reads > 0);
+
     double entropy = 0;
 
     for (size_t i = 0; i < epialleles.size(); i++)
@@ -89,8 +109,10 @@ double calculate_entropy_across_reads(std::vector<uint32_t> const & epialleles, 
 }
 
 // Calculate epipolymorphism for a 4-mer
-double calculate_epipolymorphism_across_reads(std::vector<uint32_t> const & epialleles, uint32_t const & num_reads)
+inline double calculate_epipolymorphism_across_reads(std::vector<uint32_t> const & epialleles, uint32_t num_reads)
 {
+    assert(num_reads > 0);
+
     double epipolymorphism = 0;
 
     for (size_t i = 0; i < epialleles.size(); i++)
@@ -103,8 +125,11 @@ double calculate_epipolymorphism_across_reads(std::vector<uint32_t> const & epia
 }
 
 // Calculate average methylation for a 4-mer
-double calculate_avg_kmer_methylation_across_reads(std::vector<uint32_t> const & epialleles, uint32_t const & num_reads)
+inline double calculate_avg_kmer_methylation_across_reads(std::vector<uint32_t> const & epialleles, uint32_t num_reads)
 {
+    assert(num_reads > 0);
+    assert(epialleles.size() == 16);
+
     uint32_t methylated_cpgs =
     epialleles[1] * 1 +
     epialleles[2] * 1 +
