@@ -1,8 +1,8 @@
 // ==========================================================================
 //                                  RLM
 // ==========================================================================
-// Copyright (c) 2021-2025, Sara Hetzel <hetzel @ molgen.mpg.de>
-// Copyright (c) 2021-2025, Max-Planck-Institut für Molekulare Genetik
+// Copyright (c) 2021-2026, Sara Hetzel <hetzel @ molgen.mpg.de>
+// Copyright (c) 2021-2026, Max-Planck-Institut für Molekulare Genetik
 // All rights reserved.
 //
 // This file is part of RLM.
@@ -21,6 +21,11 @@
 
 #pragma once
 
+#include <array>
+#include <cstdint>
+#include <stdexcept>
+#include <string>
+#include <tuple>
 #include <vector>
 
 #include <seqan3/io/sam_file/sam_tag_dictionary.hpp>
@@ -48,7 +53,7 @@ _score_name_to_enum(std::string const & str)
     else if (str == "all")
         return score_type::ALL;
 
-    return score_type::SINGLE_READ;
+    throw std::invalid_argument("Unknown score: " + str);
 }
 
 // Define aligner types
@@ -72,7 +77,7 @@ _aligner_name_to_enum(std::string const & str)
     else if (str == "gem")
         return align_type::GEM;
 
-    return align_type::BSMAP;
+    throw std::invalid_argument("Unknown aligner: " + str);
 }
 
 // Define sequencing types
@@ -106,7 +111,7 @@ _mate_type_to_enum(std::string const & str)
     else if (str == "PE")
         return mate_type::PE;
 
-    return mate_type::PE;
+    throw std::invalid_argument("Unknown mate type: " + str);
 }
 
 // Define read type
@@ -129,7 +134,7 @@ _read_tag_bsmap_to_enum(std::string const & str)
     else if (str == "--")
         return read_type::REV;
 
-    return read_type::FWD;
+    throw std::invalid_argument("Unknown read type for BSMAP: " + str);
 }
 
 // Get original strand from BISMARK alignment
@@ -141,7 +146,7 @@ _read_tag_bismark_to_enum(std::string const & str)
     else if (str == "GA")
         return read_type::REV;
 
-    return read_type::FWD;
+    throw std::invalid_argument("Unknown read type for BISMARK: " + str);
 }
 
 // Get original strand from segemehl alignment
@@ -153,7 +158,7 @@ _read_tag_segemehl_to_enum(std::string const & str)
     else if (str == "F1/GA")
         return read_type::REV;
 
-    return read_type::FWD;
+    throw std::invalid_argument("Unknown read type for segemehl: " + str);
 }
 
 // Get original strand from GEM alignment
@@ -165,7 +170,7 @@ _read_tag_gem_to_enum(std::string const & str)
     else if (str == "G")
         return read_type::REV;
 
-    return read_type::FWD;
+    throw std::invalid_argument("Unknown read type for GEM: " + str);
 }
 
 // Tag used to separate overloads for different score calculations

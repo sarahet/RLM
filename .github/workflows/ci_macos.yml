@@ -5,7 +5,7 @@ on:
   pull_request:
 
 env:
-  CMAKE_VERSION: 3.10.0
+  CMAKE_VERSION: 3.20.0
   SHARG_NO_VERSION_CHECK: 1
   TZ: Europe/Berlin
 
@@ -27,9 +27,9 @@ jobs:
             cc: "gcc-12"
             build_type: Release
 
-          - name: "gcc11"
-            cxx: "g++-11"
-            cc: "gcc-11"
+          - name: "gcc13"
+            cxx: "g++-13"
+            cc: "gcc-13"
             build_type: Release
 
     steps:
@@ -70,9 +70,10 @@ jobs:
           CXX: ${{ matrix.cxx }}
           CC: ${{ matrix.cc }}
         run: |
-          mkdir build
-          cd build
-          cmake ../rlm -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}"
+          cmake -S rlm -B build \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}" \
+            -DBUILD_TESTING=ON
 
       - name: Build tests
         env:
@@ -83,10 +84,11 @@ jobs:
           CCACHE_MAXSIZE: 500M
         run: |
           ccache -p || true
-          cd build
-          make -k -j2
+          cmake --build build --parallel 2 --config ${{ matrix.build_type }} --target build_tests
 
       - name: Run tests
         run: |
-          cd build
-          ctest . -j2 --output-on-failure
+          ctest --test-dir build \
+            -C ${{ matrix.build_type }} \
+            --output-on-failure \
+            --parallel 2

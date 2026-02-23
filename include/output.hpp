@@ -1,8 +1,8 @@
 // ==========================================================================
 //                                  RLM
 // ==========================================================================
-// Copyright (c) 2021-2025, Sara Hetzel <hetzel @ molgen.mpg.de>
-// Copyright (c) 2021-2025, Max-Planck-Institut für Molekulare Genetik
+// Copyright (c) 2021-2026, Sara Hetzel <hetzel @ molgen.mpg.de>
+// Copyright (c) 2021-2026, Max-Planck-Institut für Molekulare Genetik
 // All rights reserved.
 //
 // This file is part of RLM.
@@ -21,15 +21,20 @@
 
 #pragma once
 
+#include <cassert>
+#include <cstdint>
+#include <deque>
+#include <fstream>
+#include <numeric>
+#include <stdexcept>
+#include <string>
+#include <tuple>
+#include <vector>
+
 #include "methylation_scores.hpp"
 
-using num_reads_t = uint32_t;
-using num_discordant_reads_t = uint32_t;
-using sum_transitions_t = double;
-using num_methyl_cpgs_t = uint32_t;
-
 // Write header for 'single_read' mode
-void write_header_read_info(std::ofstream & output_stream)
+inline void write_header_read_info(std::ofstream & output_stream)
 {
     if (output_stream.is_open())
     {
@@ -51,7 +56,7 @@ void write_header_read_info(std::ofstream & output_stream)
 }
 
 // Write header for 'entropy' mode
-void write_header_entropy(std::ofstream & output_stream)
+inline void write_header_entropy(std::ofstream & output_stream)
 {
     if (output_stream.is_open())
     {
@@ -86,7 +91,7 @@ void write_header_entropy(std::ofstream & output_stream)
 }
 
 // Write header for 'pdr' mode
-void write_header_pdr(std::ofstream & output_stream)
+inline void write_header_pdr(std::ofstream & output_stream)
 {
     if (output_stream.is_open())
     {
@@ -105,13 +110,15 @@ void write_header_pdr(std::ofstream & output_stream)
 }
 
 // Write record for 'entropy' mode
-void write_record_entropy(std::ofstream & output_stream,
+inline void write_record_entropy(std::ofstream & output_stream,
                           std::deque<std::string> const & ref_ids,
                           GenomePosition const & pos,
                           std::vector<uint32_t> const & epialleles,
-                          uint32_t const & coverage_filter)
+                          uint32_t coverage_filter)
 {
-    uint32_t coverage = std::accumulate(epialleles.begin(), epialleles.end(), 0);
+    assert(epialleles.size() == 16);
+    
+    uint32_t coverage = std::accumulate(epialleles.begin(), epialleles.end(), uint32_t{0});
     if (coverage < coverage_filter)
         return;
 
@@ -141,11 +148,11 @@ void write_record_entropy(std::ofstream & output_stream,
 }
 
 // Write record for 'pdr' mode
-void write_record_pdr(std::ofstream & output_stream,
+inline void write_record_pdr(std::ofstream & output_stream,
                       std::deque<std::string> const & ref_ids,
                       GenomePosition const & pos,
                       std::tuple<num_reads_t, num_discordant_reads_t, sum_transitions_t, num_methyl_cpgs_t> const & position_counts,
-                      uint32_t const & coverage_filter)
+                      uint32_t coverage_filter)
 {
     if (std::get<0>(position_counts) < coverage_filter)
         return;

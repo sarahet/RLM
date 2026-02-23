@@ -1,3 +1,3 @@
-cmake_minimum_required (VERSION 3.8)
+cmake_minimum_required (VERSION 3.20)
 
-add_api_test (scores_test.cpp)
+add_app_test (scores_test.cpp)
